@@ -1,0 +1,129 @@
+%{
+	#include <iostream>
+	#include "semanticAnalyzer.h"
+	#include "hw3_output.hpp"
+	using namespace output;
+	void yyerror(const char*);
+	int yylex();
+	extern int yylineno;
+%}
+
+%token VOID INT BYTE B BOOL TRUE FALSE RETURN WHILE BREAK CONTINUE SWITCH CASE DEFAULT COLON SC COMMA LBRACE RBRACE ASSIGN ID NUM STRING EOP
+%right IF
+%right ELSE
+%left OR
+%left AND
+%left EQUALITY
+%nonassoc RELATIONAL
+%left ADD SUB
+%left MULT DIV
+%right NOT
+%left LPAREN RPAREN
+
+%%
+Program : {openNewScope(GLOBAL_BLOCK);} Funcs EOP {closeGlobalScope();}
+;
+Funcs : {}
+		| FuncDecl Funcs {}
+;
+FuncDecl :RetType ID LPAREN Formals RPAREN LBRACE {openNewScope(FUNC_BLOCK, $2.stringVal, $1.type, $4
+                  .variablesTypes,
+                  $4.variablesValues);} Statements RBRACE{closeScope();}
+;
+RetType : Type {$$.type = $1.type;}
+		| VOID {$$.type = "VOID";}
+;
+Formals : {}
+		| FormalsList {}
+;
+FormalsList : FormalDecl {$$.variablesTypes = $1.variablesTypes; $$.variablesValues = $1.variablesValues;}
+			| FormalDecl COMMA FormalsList {$$.variablesTypes=$1.variablesTypes;
+			$$.variablesTypes.insert($$.variablesTypes.end(), $3.variablesTypes
+			.begin(), $3.variablesTypes.end());
+			$$.variablesValues=$1.variablesValues;
+			$$.variablesValues.insert($$.variablesValues.end(), $3
+			.variablesValues.begin(), $3.variablesValues.end());}
+;
+FormalDecl : Type ID {$$.variablesTypes = {$1.type}; $$.variablesValues = {$2.stringVal};}
+;
+Statements : Statement {}
+			| Statements Statement {}
+;
+Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
+			| Type ID SC {addNewVar($2.stringVal, $1.type);}
+			| Type ID ASSIGN Exp SC {checkAssignType($1.type, $4.type); addNewVar($2.stringVal, $1.type);}
+			| ID ASSIGN Exp SC {checkIfVarDeclared($1.stringVal);
+			            checkAssignType(getSymbolType($1.stringVal), $3.type);}
+			| Call SC {}
+			| RETURN SC { checkVoidFunc();}
+			| RETURN Exp SC {checkRetType($2.type);}
+			| IF LPAREN IfExpType RPAREN Statement closeIfMarker %prec IF
+			{}
+			| IF LPAREN IfExpType RPAREN Statement closeIfMarker ELSE
+			{openNewScope(ELSE_BLOCK);} Statement %prec ELSE {closeScope();}
+			| WHILE LPAREN Exp {checkBoolType($3.type, $3.type);} RPAREN
+			                    {openNewScope(WHILE_BLOCK);} Statement
+			                    {closeScope();}
+			| BREAK SC {checkBreak();}
+			| CONTINUE SC {checkContinue();}
+			| SWITCH LPAREN Exp {checkNumericType($3.type, $3.type);
+			openNewScope(SWITCH_BLOCK);}  RPAREN LBRACE CaseList RBRACE
+			{closeScope();}
+
+;
+IfExpType : Exp {checkBoolType($1.type, $1.type); openNewScope(IF_BLOCK);}
+closeIfMarker : { closeScope();}
+Call : ID LPAREN ExpList RPAREN {checkFuncCall($1.stringVal, $3.variablesTypes);
+                                 $$.type = getSymbolType($1.stringVal);}
+		|ID LPAREN RPAREN {checkFuncCall($1.stringVal);
+                           $$.type = getSymbolType($1.stringVal);}
+;
+ExpList : Exp {$$.variablesTypes = {$1.type};}
+		| Exp COMMA ExpList {$$.variablesTypes = {$1.type};
+		                     $$.variablesTypes.insert($$.variablesTypes.end(),
+		                     $3.variablesTypes.begin(), $3.variablesTypes.end());}
+;
+Type : INT {$$.type = "INT";}
+		| BYTE {$$.type = "BYTE";}
+		| BOOL {$$.type = "BOOL";}
+;
+Exp : LPAREN Exp RPAREN {$$.type = $2.type;}
+	| Exp ADD Exp {$$.type = checkNumericType($1.type, $3.type);}
+	| Exp SUB Exp {$$.type = checkNumericType($1.type, $3.type);}
+	| Exp MULT Exp {$$.type = checkNumericType($1.type, $3.type);}
+	| Exp DIV Exp {$$.type = checkNumericType($1.type, $3.type);}
+	| ID {checkIfVarDeclared($1.stringVal);
+	      $$.type = getSymbolType($1.stringVal);}
+	| Call {$$.type = $1.type;}
+	| NUM {$$.type = "INT";
+	        $$.intVal = $1.intVal;}
+	| NUM B {checkByte($1.intVal);
+	         $$.byteVal = $1.intVal;
+	         $$.type = "BYTE";}
+	| STRING {$$.type = "STRING";}
+	| TRUE {$$.type = "BOOL";}
+	| FALSE {$$.type = "BOOL";}
+	| NOT Exp {$$.type = checkBoolType($2.type, $2.type);}
+	| Exp AND Exp {$$.type = checkBoolType($1.type, $3.type);}
+	| Exp OR Exp {$$.type = checkBoolType($1.type, $3.type);}
+	| Exp RELATIONAL Exp {checkNumericType($1.type, $3.type);
+	                      $$.type = "BOOL";}
+	| Exp EQUALITY Exp {checkNumericType($1.type, $3.type);
+                       	                $$.type = "BOOL";}
+;
+CaseList : CaseDecl CaseList {}
+		| CaseDecl {}
+		| DEFAULT COLON Statements {}
+;		
+CaseDecl : CASE NUM COLON Statements {}
+;
+
+%%
+
+void yyerror(const char*){
+	output::errorSyn(yylineno);
+}
+
+int main(){
+	return yyparse();
+}
