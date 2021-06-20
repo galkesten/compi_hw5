@@ -2,9 +2,7 @@
 // Created by galkesten on 19/06/2021.
 //
 #include "bp.hpp"
-#include <string>
-#include <vector>
-#include <stdio.h>
+#include "Instructions.h"
 
 string addPercent(const string& s){
     if (s[0]!='%'){
@@ -13,401 +11,236 @@ string addPercent(const string& s){
     return s;
 }
 
-class Instruction {
 
-    public:
-    Instruction()=default;
-    ~Instruction() = default;
-    virtual void emit() = 0;
+addInstruction::addInstruction(const string& src1, const string& src2, const
+string&
+dest, const string& type) :src1(src1),src2(src2), dest(dest), type(type){}
 
 
-};
 
-class addInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-    public:
-    addInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type) :src1(src1),src2(src2), dest(dest), type(type){}
-
-    ~addInstruction()= default;
-    addInstruction& operator=( const addInstruction&) = default;
-    addInstruction(const addInstruction&) = default;
-
-     void emit() override {
-        string inst = dest + " = add " + type+ " " + src1+", " + src2;
-         CodeBuffer::instance().emit(inst);
-    }
-};
-
-class subInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-public:
-    subInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type) : src1(src1),
-    src2(src2), dest(dest), type(type){}
-
-    ~subInstruction()= default;
-    subInstruction(const subInstruction&) = default;
-    subInstruction& operator=(const subInstruction&)= default;
-
-    void emit() override {
-        string inst = dest + " = sub " + type+ " " + src1+", " + src2;
-        CodeBuffer::instance().emit(inst);
-    }
-};
+ void addInstruction::emit() {
+    string inst = dest + " = add " + type+ " " + src1+", " + src2;
+     CodeBuffer::instance().emit(inst);
+}
 
 
-class mulInstruction : Instruction{
+subInstruction::subInstruction(const string& src1, const string& src2, const string&
+dest, const string& type) : src1(src1), src2(src2), dest(dest), type(type){}
 
-    string src1;
-    string src2;
-    string dest;
-    string type;
+void subInstruction::emit() {
+    string inst = dest + " = sub " + type+ " " + src1+", " + src2;
+    CodeBuffer::instance().emit(inst);
+}
 
-public:
-    mulInstruction(const string& src1, const string& src2, const string&
+
+
+
+mulInstruction::mulInstruction(const string& src1, const string& src2, const string&
     dest, const string& type) : src1(src1), src2(src2), dest(dest), type(type){}
 
-    ~mulInstruction()= default;
-    mulInstruction(const mulInstruction&) = default;
-    mulInstruction& operator=(const mulInstruction&) = default;
-    void emit() override {
-        string inst = dest + " = mul " + type+ " " + src1+", " + src2;
-        CodeBuffer::instance().emit(inst);
+void mulInstruction::emit() {
+    string inst = dest + " = mul " + type+ " " + src1+", " + src2;
+    CodeBuffer::instance().emit(inst);
+}
+
+
+unsignedDivInstruction:: unsignedDivInstruction(const string& src1, const string& src2,
+        const string& dest, const string& type) : src1(src1), src2(src2),
+        dest(dest), type(type){}
+
+
+void  unsignedDivInstruction::emit()  {
+    string inst = dest + " = udiv " + type+ " " + src1+", " + src2;
+    CodeBuffer::instance().emit(inst);
+}
+
+
+
+signedDivInstruction::signedDivInstruction(const string& src1, const string&
+src2, const string& dest, const string& type) : src1(src1), src2(src2), dest
+(dest), type(type){}
+
+void signedDivInstruction::emit() {
+    string inst = dest + " = sdiv " + type+ " " + src1+", " + src2;
+    CodeBuffer::instance().emit(inst);
+}
+
+
+
+allocateVarInstruction::allocateVarInstruction(const string& ptrName, const
+string& type) : ptrName(ptrName){}
+
+void allocateVarInstruction::emit() {
+    string inst = ptrName + " = alloca "+type;
+    CodeBuffer::instance().emit(inst);
+}
+
+
+allocateArrayInstruction::allocateArrayInstruction(const string& ptrName,
+        const string& type, long long size) : ptrName(ptrName), type(type), size(size){}
+
+void allocateArrayInstruction::emit()  {
+    string inst = ptrName + " = alloca "+ type+ ", "+ type + " "+
+    to_string(size);
+    CodeBuffer::instance().emit(inst);
+}
+
+
+getElementPtrInstruction::getElementPtrInstruction(const string& destPtr,
+        const string& srcPtr, const string& elemType, long long arraySize,
+        const string& targetArrayIndex, const string& targetElementIndex) :
+        Instruction(), destPtr(destPtr), srcPtr(srcPtr), elemType(elemType),
+        arraySize(arraySize), targetArrayIndex(targetArrayIndex), targetElementIndex(targetElementIndex){}
+
+
+void getElementPtrInstruction::emit() {
+    string arrayType;
+    if (arraySize > 1){
+        arrayType= "[" + to_string(arraySize)+" x "+ elemType+ "]";
     }
-};
-
-
-class unsignedDivInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-public:
-    unsignedDivInstruction(const string& src1, const string& src2,
-            const string& dest, const string& type) : src1(src1), src2(src2),
-            dest(dest), type(type){}
-
-    ~unsignedDivInstruction()= default;
-    unsignedDivInstruction& operator=( const unsignedDivInstruction&) =default;
-    unsignedDivInstruction(const unsignedDivInstruction&) = default;
-
-    void emit() override {
-        string inst = dest + " = udiv " + type+ " " + src1+", " + src2;
-        CodeBuffer::instance().emit(inst);
+    else{
+        arrayType= elemType;
     }
-};
-
-class signedDivInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-public:
-    signedDivInstruction(const string& src1, const string& src2,
-            const string& dest, const string& type) : src1(src1), src2(src2),
-            dest(dest), type
-            (type){}
-
-    ~signedDivInstruction()= default;
-    signedDivInstruction(const signedDivInstruction&) = default;
-    void emit() override {
-        string inst = dest + " = sdiv " + type+ " " + src1+", " + src2;
-        CodeBuffer::instance().emit(inst);
+    string inst = destPtr + " = getelementptr " + arrayType+ ", " +
+            arrayType
+            +"* "+
+            srcPtr+", ";
+    if(arraySize > 1){
+        inst+= "i32 " +targetArrayIndex+ ", ";
     }
-};
+    inst+= "i32 " + targetElementIndex;
+    CodeBuffer::instance().emit(inst);
+}
+
+storeInstruction::storeInstruction(const string& ptrName, const string& type,
+        const string& val) : ptrName(ptrName), type(type), val(val){}
 
 
-class allocateVarInstruction : Instruction {
-
-    string ptrName;
-    string type;
-    public:
-
-    allocateVarInstruction(const string& ptrName, const string& type) : ptrName
-    (ptrName){}
-    allocateVarInstruction(const allocateVarInstruction& ) = default;
-    allocateVarInstruction& operator=(const allocateVarInstruction&) = default;
-    ~allocateVarInstruction() = default;
-
-    void emit() override {
-        string inst = ptrName + " = alloca "+type;
-        CodeBuffer::instance().emit(inst);
-    }
-};
-
-class allocateArrayInstruction : Instruction {
-
-    string ptrName; // ptr will be from type int 32*
-    string type;
-    long long size;
-
-public:
-
-    allocateArrayInstruction(const string& ptrName, const string& type, long
-    long size) : ptrName(ptrName), type(type), size(size){}
-    allocateArrayInstruction (const allocateArrayInstruction& ) = default;
-    allocateArrayInstruction& operator=(const allocateArrayInstruction&) = default;
-    ~allocateArrayInstruction() = default;
-
-    void emit() override {
-        string inst = ptrName + " = alloca "+ type+ ", "+ type + " "+
-        to_string(size);
-        CodeBuffer::instance().emit(inst);
-    }
-};
-
-class getElementPtrInstruction : Instruction {
-
-    string destPtr; // ptr will be from type int 32*
-    string srcPtr;
-    string elemType;
-    long long arraySize;
-    string targetArrayIndex;
-    string targetElementIndex;
-
-public:
-
-    getElementPtrInstruction(const string& destPtr, const string& srcPtr,
-            const string& elemType, long long arraySize, const string&
-            targetArrayIndex, const string& targetElementIndex) : Instruction(), destPtr(destPtr), srcPtr(srcPtr),
-    elemType(elemType), arraySize(arraySize), targetArrayIndex
-    (targetArrayIndex), targetElementIndex(targetElementIndex){}
-
-    getElementPtrInstruction (const getElementPtrInstruction& ) = default;
-    getElementPtrInstruction& operator=(const getElementPtrInstruction&) = default;
-    ~getElementPtrInstruction() = default;
-
-    void emit() override {
-        string arrayType;
-        if (arraySize > 1){
-            arrayType= "[" + to_string(arraySize)+" x "+ elemType+ "]";
-        }
-        else{
-            arrayType= elemType;
-        }
-        string inst = destPtr + " = getelementptr " + arrayType+ ", " +
-                arrayType
-                +"* "+
-                srcPtr+", ";
-        if(arraySize > 1){
-            inst+= "i32 " +targetArrayIndex+ ", ";
-        }
-        inst+= "i32 " + targetElementIndex;
-        CodeBuffer::instance().emit(inst);
-    }
-};
-
-class storeInstruction : Instruction {
-
-    string ptrName;
-    string type;
-    string val;
-public:
-
-    storeInstruction(const string& ptrName, const string& type, const string&
-    val) : ptrName(ptrName), type(type), val(val){}
-    storeInstruction(const storeInstruction&) = default;
-    storeInstruction& operator=(const storeInstruction&) = default;
-    ~storeInstruction() = default;
-
-    void emit() override {
-        string inst = "store " + type + " " + val+", "+ type + "*" + " "+ ptrName;
-        CodeBuffer::instance().emit(inst);
-    }
-};
-
-class loadInstruction : Instruction {
-
-    string srcPtr;
-    string destPtr;
-    string type;
-public:
-
-    loadInstruction(const string& srcPtr,const string&
-    destPtr, const string& type) : srcPtr(srcPtr), destPtr(destPtr), type
-    (type){}
-    loadInstruction(const loadInstruction&) = default;
-    loadInstruction& operator=(const loadInstruction&) = default;
-    ~loadInstruction() = default;
-
-    void emit() override {
-        string inst = destPtr + " = load " + type + ", "+ type +"* "+ srcPtr;
-        CodeBuffer::instance().emit(inst);
-    }
-};
+void storeInstruction::emit(){
+    string inst = "store " + type + " " + val+", "+ type + "*" + " "+ ptrName;
+    CodeBuffer::instance().emit(inst);
+}
 
 
-class cmpInstruction : Instruction{
 
-    string src1;
-    string src2;
-    string dest;
-    string type;
-    string cond;
+loadInstruction::loadInstruction(const string& srcPtr,const string&
+    destPtr, const string& type) : srcPtr(srcPtr), destPtr(destPtr), type(type){}
 
-public:
-    cmpInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type, const string& cond) :src1(src1),src2(src2), dest
-    (dest), type(type), cond(cond){}
+void loadInstruction::emit(){
+    string inst = destPtr + " = load " + type + ", "+ type +"* "+ srcPtr;
+    CodeBuffer::instance().emit(inst);
+}
 
-    ~cmpInstruction()= default;
-     cmpInstruction& operator=( const cmpInstruction&) = default;
-     cmpInstruction(const cmpInstruction&) = default;
+cmpInstruction::cmpInstruction(const string& src1, const string& src2, const
+string& dest, const string& type, const string& cond) :src1(src1),src2(src2),
+dest(dest), type(type), cond(cond){}
 
-    void emit() override {
-        string inst = dest + " = icmp " + cond + " "+ type+ " " + src1+", " +
-                src2;
-        CodeBuffer::instance().emit(inst);
-    }
-};
 
-class unconditionalBrInstruction : Instruction {
+void cmpInstruction::emit(){
+    string inst = dest + " = icmp " + cond + " "+ type+ " " + src1+", " +
+            src2;
+    CodeBuffer::instance().emit(inst);
+}
 
-    string label;
-public:
 
-    unconditionalBrInstruction(const string& label) : label(addPercent(label)){}
-    unconditionalBrInstruction(const unconditionalBrInstruction&) = default;
-    unconditionalBrInstruction& operator=(const unconditionalBrInstruction&) = default;
-    ~unconditionalBrInstruction() = default;
+unconditionalBrInstruction::unconditionalBrInstruction(const string& label) :
+label(addPercent(label)){}
 
-    void emit() override {
-        string inst = "br label "+label;
-        CodeBuffer::instance().emit(inst);
-    }
-};
+void unconditionalBrInstruction::emit(){
+    string inst = "br label "+label;
+    CodeBuffer::instance().emit(inst);
+}
 
-class conditionalBrInstruction : Instruction {
-
-    string trueLabel;
-    string falseLabel;
-    string regOfCmpRes;
-public:
-
-    conditionalBrInstruction(const string& trueLabel, const string&
+conditionalBrInstruction::conditionalBrInstruction(const string& trueLabel,
+        const string&
     falseLabel, const string& regOfCmpRes) : trueLabel(addPercent(trueLabel)),
     falseLabel(addPercent(falseLabel)), regOfCmpRes(regOfCmpRes){}
-    conditionalBrInstruction(const conditionalBrInstruction&) = default;
-    conditionalBrInstruction& operator=(const conditionalBrInstruction&) = default;
-    ~conditionalBrInstruction() = default;
 
-    void emit() override {
-        string inst = "br i1 " + regOfCmpRes+", label "+trueLabel+", label "
-                                                                 ""+falseLabel;
-        CodeBuffer::instance().emit(inst);
-    }
-};
+void conditionalBrInstruction::emit() {
+    string inst = "br i1 " + regOfCmpRes+", label "+trueLabel+", label "
+                                                             ""+falseLabel;
+    CodeBuffer::instance().emit(inst);
+}
 
-class callInstruction : Instruction {
 
-    vector<string> places;
-    vector<string> types;
-    string funcName;
-    string retType;
-    string dest;
 
-    string createParamsString(){
-        string params="";
-        for(int i=0; i< types.size(); ++i){
-            params+= types[i];
-            params+= " ";
-            params+= places[i];
+string callInstruction::createParamsString(){
+    string params="";
+    for(int i=0; i< types.size(); ++i){
+        params+= types[i];
+        params+= " ";
+        params+= places[i];
 
-            if(i!=types.size()-1){
-                params+=", ";
-            }
+        if(i!=types.size()-1){
+            params+=", ";
         }
-        return params;
     }
-public:
+    return params;
+    }
 
-    callInstruction(const vector<string>& types, const vector<string>& places,
-                    const string& funcName, const string& retType, const string& dest="") {
-        this->funcName = "@"+ funcName;
-        this->retType = (retType=="VOID"? "void" : "i32");
-        this->dest = dest;
-        this->places = places;
-        for(int i=0; i<types.size(); i++) {
-            if(types[i] == "STRING"){
-                this->types.push_back("i8*");
-            }
-            else{
-                this->types.push_back("i32");
-            }
+callInstruction::callInstruction(const vector<string>& types, const
+                        vector<string>& places, const string& funcName,
+                        const string& retType, const string& dest) {
+    this->funcName = "@"+ funcName;
+    this->retType = (retType=="VOID"? "void" : "i32");
+    this->dest = dest;
+    this->places = places;
+    for(int i=0; i<types.size(); i++) {
+        if(types[i] == "STRING"){
+            this->types.push_back("i8*");
         }
-
-    }
-    callInstruction(const callInstruction&) = default;
-    callInstruction& operator=(const callInstruction&) = default;
-    ~callInstruction() = default;
-
-    void emit() override {
-        string inst;
-        if(dest != ""){
-            inst+= dest+ " = ";
+        else{
+            this->types.push_back("i32");
         }
-        string params = createParamsString();
-        inst+= "call "+ retType +" "+ funcName+"("+params+")";
-        CodeBuffer::instance().emit(inst);
     }
-};
 
-class defineFuncInstruction : Instruction {
+}
 
-    vector<string> types;
-    string funcName;
-    string retType;
+void callInstruction::emit(){
+    string inst;
+    if(dest != ""){
+        inst+= dest+ " = ";
+    }
+    string params = createParamsString();
+    inst+= "call "+ retType +" "+ funcName+"("+params+")";
+    CodeBuffer::instance().emit(inst);
+}
 
-    string createParamsString(){
-        string params="";
-        for(int i=0; i< types.size(); ++i){
-            params+= types[i];
-            if(i!=types.size()-1){
-                params+=", ";
-            }
+
+
+
+string defineFuncInstruction::createParamsString(){
+    string params="";
+    for(int i=0; i< types.size(); ++i){
+        params+= types[i];
+        if(i!=types.size()-1){
+            params+=", ";
         }
-        return params;
     }
-public:
+    return params;
+}
 
-    defineFuncInstruction(const vector<string>& types,const string& funcName, const string& retType) {
-        this->funcName = "@"+ funcName;
-        this->retType = (retType=="VOID"? "void" : "i32");
-        for(int i=0; i<types.size(); i++) {
-            if(types[i] == "STRING"){
-                this->types.push_back("i8*");
-            }
-            else{
-                this->types.push_back("i32");
-            }
+defineFuncInstruction::defineFuncInstruction(const vector<string>& types,const
+string& funcName, const string& retType) {
+    this->funcName = "@"+ funcName;
+    this->retType = (retType=="VOID"? "void" : "i32");
+    for(int i=0; i<types.size(); i++) {
+        if(types[i] == "STRING"){
+            this->types.push_back("i8*");
         }
-
+        else{
+            this->types.push_back("i32");
+        }
     }
-    defineFuncInstruction (const defineFuncInstruction&) = default;
-    defineFuncInstruction& operator=(const defineFuncInstruction&) = default;
-    ~defineFuncInstruction() = default;
 
-    void emit() override {
-        string params = createParamsString();
-        string inst = "define "+ retType+ " "+funcName +"("+params+")"+" {";
-        CodeBuffer::instance().emit(inst);
-    }
-};
+}
+
+void defineFuncInstruction::emit(){
+    string params = createParamsString();
+    string inst = "define "+ retType+ " "+funcName +"("+params+")"+" {";
+    CodeBuffer::instance().emit(inst);
+}
+
 
  int main(){
 

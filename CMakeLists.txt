@@ -3,4 +3,4 @@ project(compi_hw3)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(compi_hw3 bp.cpp bp.hpp Instructions.cpp)
+add_executable(compi_hw3 bp.cpp bp.hpp Instructions.cpp Instructions.h)
