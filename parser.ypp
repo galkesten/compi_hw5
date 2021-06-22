@@ -1,7 +1,7 @@
 %{
 	#include <iostream>
 	#include "semanticAnalyzer.h"
-	#include "code_gen.hpp"
+	#include "codeGen.hpp"
 	#include "hw3_output.hpp"
 	using namespace output;
 	void yyerror(const char*);
