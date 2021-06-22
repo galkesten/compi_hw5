@@ -20,6 +20,7 @@ struct semanticAttributes{
     string type;
     std::vector<string> variablesValues;
     std::vector<string> variablesTypes;
+    string place;
 
 };
 

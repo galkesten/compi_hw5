@@ -1,6 +1,7 @@
 %{
 	#include <iostream>
 	#include "semanticAnalyzer.h"
+	#include "code_gen.hpp"
 	#include "hw3_output.hpp"
 	using namespace output;
 	void yyerror(const char*);
@@ -21,7 +22,7 @@
 %left LPAREN RPAREN
 
 %%
-Program : {openNewScope(GLOBAL_BLOCK);} Funcs EOP {closeGlobalScope();}
+Program : {openNewScope(GLOBAL_BLOCK);} Funcs EOP {closeGlobalScope();  addPrintFunctionsToGlobalScope(); printCode(); }
 ;
 Funcs : {}
 		| FuncDecl Funcs {}
@@ -88,19 +89,19 @@ Type : INT {$$.type = "INT";}
 		| BOOL {$$.type = "BOOL";}
 ;
 Exp : LPAREN Exp RPAREN {$$.type = $2.type;}
-	| Exp ADD Exp {$$.type = checkNumericType($1.type, $3.type);}
-	| Exp SUB Exp {$$.type = checkNumericType($1.type, $3.type);}
-	| Exp MULT Exp {$$.type = checkNumericType($1.type, $3.type);}
-	| Exp DIV Exp {$$.type = checkNumericType($1.type, $3.type);}
+	| Exp ADD Exp {$$.type = checkNumericType($1.type, $3.type); gen_binop_Instruction($$, $1, $3, "add");}
+	| Exp SUB Exp {$$.type = checkNumericType($1.type, $3.type); gen_binop_Instruction($$, $1, $3, "sub")}
+	| Exp MULT Exp {$$.type = checkNumericType($1.type, $3.type); gen_binop_Instruction($$, $1, $3, "mult")}
+	| Exp DIV Exp {$$.type = checkNumericType($1.type, $3.type); gen_binop_Instruction($$, $1, $3, "sdiv")}
 	| ID {checkIfVarDeclared($1.stringVal);
 	      $$.type = getSymbolType($1.stringVal);}
 	| Call {$$.type = $1.type;}
 	| NUM {$$.type = "INT";
-	        $$.intVal = $1.intVal;}
+	        $$.intVal = $1.intVal; genInt($$);}
 	| NUM B {checkByte($1.intVal);
 	         $$.byteVal = $1.intVal;
-	         $$.type = "BYTE";}
-	| STRING {$$.type = "STRING";}
+	         $$.type = "BYTE"; genByte($$);}
+	| STRING {$$.type = "STRING"; $$.stringVal = $1.stringVal; genString($$);}
 	| TRUE {$$.type = "BOOL";}
 	| FALSE {$$.type = "BOOL";}
 	| NOT Exp {$$.type = checkBoolType($2.type, $2.type);}

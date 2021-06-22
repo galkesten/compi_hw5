@@ -1,7 +1,7 @@
 //
 // Created by galkesten on 19/06/2021.
 //
-#include "bp.hpp"
+
 #include "Instructions.h"
 
 string addPercent(const string& s){
@@ -11,60 +11,36 @@ string addPercent(const string& s){
     return s;
 }
 
+binopInstruction::binopInstruction(const string &src1, const string &src2,
+                                   const string &dest, const string &type,
+                                   const string& instruction): src1(src1),
+                                   src2(src2), dest(dest), type(type){};
 
-addInstruction::addInstruction(const string& src1, const string& src2, const
-string&
-dest, const string& type) :src1(src1),src2(src2), dest(dest), type(type){}
-
-
-
- void addInstruction::emit() {
-    string inst = dest + " = add " + type+ " " + src1+", " + src2;
-     CodeBuffer::instance().emit(inst);
-}
-
-
-subInstruction::subInstruction(const string& src1, const string& src2, const string&
-dest, const string& type) : src1(src1), src2(src2), dest(dest), type(type){}
-
-void subInstruction::emit() {
-    string inst = dest + " = sub " + type+ " " + src1+", " + src2;
+void binopInstruction::emit(){
+    string inst = dest + " = " + instruction + " " + type+ " " + src1+", " + src2;
     CodeBuffer::instance().emit(inst);
 }
 
 
+zextInstruction::zextInstruction(const string &src, const string &dest,
+                                 const string type_src,
+                                 const string &type_dest): src(src), dest(dest),
+                                 type_src(type_src), type_dest(type_dest){};
 
-
-mulInstruction::mulInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type) : src1(src1), src2(src2), dest(dest), type(type){}
-
-void mulInstruction::emit() {
-    string inst = dest + " = mul " + type+ " " + src1+", " + src2;
+void zextInstruction::emit(){
+    string inst = dest + "= zext " + type_src + " " + src + " to " + type_dest;
     CodeBuffer::instance().emit(inst);
 }
 
+truncInstruction::truncInstruction(const string &src, const string &dest,
+                                   const string type_src,
+                                   const string &type_dest): src(src), dest(dest),
+                                   type_src(type_src), type_dest(type_dest){};
 
-unsignedDivInstruction:: unsignedDivInstruction(const string& src1, const string& src2,
-        const string& dest, const string& type) : src1(src1), src2(src2),
-        dest(dest), type(type){}
-
-
-void  unsignedDivInstruction::emit()  {
-    string inst = dest + " = udiv " + type+ " " + src1+", " + src2;
+void truncInstruction::emit(){
+    string inst = dest + "=trunc " + type_src + " " + src + " to " + type_dest;
     CodeBuffer::instance().emit(inst);
 }
-
-
-
-signedDivInstruction::signedDivInstruction(const string& src1, const string&
-src2, const string& dest, const string& type) : src1(src1), src2(src2), dest
-(dest), type(type){}
-
-void signedDivInstruction::emit() {
-    string inst = dest + " = sdiv " + type+ " " + src1+", " + src2;
-    CodeBuffer::instance().emit(inst);
-}
-
 
 
 allocateVarInstruction::allocateVarInstruction(const string& ptrName, const
@@ -242,58 +218,89 @@ void defineFuncInstruction::emit(){
 }
 
 
- int main(){
+phiInstruction::phiInstruction(const string &label1, const string &label2,
+                               const string &val1, const string &val2,
+                               const string &dest, const string& type) :
+                               label1(addPercent(label1)),
+                               label2(addPercent(label2)), val1(val1), val2(val2),
+                               dest(dest), type(type) {}
 
-    addInstruction a("%a", "%b", "%c", "i32");
-    a.emit();
-    subInstruction b("%a", "%b", "%c", "i32");
-    b.emit();
-    mulInstruction m("%a", "%b", "%c", "i32");
-    m.emit();
-    signedDivInstruction c("%a", "%b", "%c", "i32");
-    c.emit();
-    unsignedDivInstruction d("%a", "%b", "%c", "i32");
-    d.emit();
-    allocateArrayInstruction p("ptr", "i8", 4);
-    p.emit();
-    getElementPtrInstruction g("%dest", "%ptr", "i8", 4, "0", "0" );
-    g.emit();
-    storeInstruction s("%element_ptr", "i32", "%init_index");
-    s.emit();
 
-    loadInstruction l("%print_ptr", "%element", "i32");
-    l.emit();
-    cmpInstruction tt("%size", "%print_index_inc","%print_loop_cond", "i32",
-            "slt" );
-    tt.emit();
-    cmpInstruction dd("%0", "1", "%1", "i32", "sle");
-    dd.emit();
-    unconditionalBrInstruction br("init_loop");
-    br.emit();
-    conditionalBrInstruction cbr("print_loop", "finish",
-            "%print_loop_cond");
-    cbr.emit();
+void phiInstruction::emit() {
+    string inst = dest + " = phi " + type  +" [" + val1 + ", " + label1 +"], ["+
+                  val2 + ", " + label2 +"]";
 
-    vector<string> types1 = {"INT"};
-    vector<string> places1 = {"%2"};
-    callInstruction call1(types1, places1, "fn_fib", "int","%4");
-    call1.emit();
-    vector<string> types2 = {"STRING", "INT"};
-    vector<string> places2 = {"%msg", "12"};
-    callInstruction call2(types2, places2, "printf", "INT","%4");
-    call2.emit();
-     vector<string> types3 = {"INT"};
-     vector<string> places3 = {"%element"};
-     callInstruction call3(types3, places3, "printi", "VOID","");
-     call3.emit();
-     defineFuncInstruction def1(types1, "fn_fib", "INT");
-     def1.emit();
-     vector<string> typesDef2 = {"INT", "INT", "INT"};
-     defineFuncInstruction def2(typesDef2, "add_3_numbers", "i32");
-     def2.emit();
-     defineFuncInstruction def3(vector<string>(),"try", "VOID");
-     def3.emit();
-    CodeBuffer::instance().printCodeBuffer();
+    CodeBuffer::instance().emit(inst);
 }
+
+
+defineString::defineString(const string &src, const string& placeName){
+    this->src = src.substr(1, src.length()-2);
+    len = this->src.length()+1;
+    this->placeName = placeName;
+}
+void defineString::emit(){
+    string inst = placeName+ " = constant [" + to_string(len)+" x i8] c\"" + src +
+                  "\\00\"";
+    CodeBuffer::instance().emitGlobal(inst);
+}
+
+unsigned long long defineString::getLen() {
+    return len;
+}
+//
+// int main(){
+//
+//    binopInstruction a("%a", "%b", "%c", "i32", "add");
+//    a.emit();
+//    binopInstruction b("%a", "%b", "%c", "i32", "sub");
+//    b.emit();
+//    binopInstruction m("%a", "%b", "%c", "i32", "mul");
+//    m.emit();
+//    binopInstruction c("%a", "%b", "%c", "i32", "sdiv");
+//    c.emit();
+//    binopInstruction d("%a", "%b", "%c", "i32", "sdiv");
+//    d.emit();
+//    allocateArrayInstruction p("ptr", "i8", 4);
+//    p.emit();
+//    getElementPtrInstruction g("%dest", "%ptr", "i8", 4, "0", "0" );
+//    g.emit();
+//    storeInstruction s("%element_ptr", "i32", "%init_index");
+//    s.emit();
+//
+//    loadInstruction l("%print_ptr", "%element", "i32");
+//    l.emit();
+//    cmpInstruction tt("%size", "%print_index_inc","%print_loop_cond", "i32",
+//            "slt" );
+//    tt.emit();
+//    cmpInstruction dd("%0", "1", "%1", "i32", "sle");
+//    dd.emit();
+//    unconditionalBrInstruction br("init_loop");
+//    br.emit();
+//    conditionalBrInstruction cbr("print_loop", "finish",
+//            "%print_loop_cond");
+//    cbr.emit();
+//
+//    vector<string> types1 = {"INT"};
+//    vector<string> places1 = {"%2"};
+//    callInstruction call1(types1, places1, "fn_fib", "int","%4");
+//    call1.emit();
+//    vector<string> types2 = {"STRING", "INT"};
+//    vector<string> places2 = {"%msg", "12"};
+//    callInstruction call2(types2, places2, "printf", "INT","%4");
+//    call2.emit();
+//     vector<string> types3 = {"INT"};
+//     vector<string> places3 = {"%element"};
+//     callInstruction call3(types3, places3, "printi", "VOID","");
+//     call3.emit();
+//     defineFuncInstruction def1(types1, "fn_fib", "INT");
+//     def1.emit();
+//     vector<string> typesDef2 = {"INT", "INT", "INT"};
+//     defineFuncInstruction def2(typesDef2, "add_3_numbers", "i32");
+//     def2.emit();
+//     defineFuncInstruction def3(vector<string>(),"try", "VOID");
+//     def3.emit();
+//    CodeBuffer::instance().printCodeBuffer();
+//}
 
 

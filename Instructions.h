@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include "bp.hpp"
 using std::string;
 using std::vector;
 class Instruction {
@@ -19,92 +20,55 @@ public:
 
 };
 
-class addInstruction : Instruction{
-
+class binopInstruction : Instruction{
     string src1;
     string src2;
     string dest;
     string type;
+    string instruction;
 
 public:
-    addInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type);
+    binopInstruction(const string& src1, const string& src2, const string&
+    dest, const string& type, const string& instruction);
 
-    ~addInstruction()= default;
-    addInstruction& operator=( const addInstruction&) = default;
-    addInstruction(const addInstruction&) = default;
-
-    void emit() override;
-};
-
-class subInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-public:
-    subInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type);
-
-    ~subInstruction()= default;
-    subInstruction(const subInstruction&) = default;
-    subInstruction& operator=(const subInstruction&)= default;
+    ~binopInstruction()= default;
+    binopInstruction& operator=( const binopInstruction&) = default;
+    binopInstruction(const binopInstruction&) = default;
 
     void emit() override;
+
 };
 
 
-class mulInstruction : Instruction{
-
-    string src1;
-    string src2;
+class zextInstruction : Instruction{
     string dest;
-    string type;
+    string src;
+    string type_src;
+    string type_dest;
 
 public:
-    mulInstruction(const string& src1, const string& src2, const string&
-    dest, const string& type);
-
-    ~mulInstruction()= default;
-    mulInstruction(const mulInstruction&) = default;
-    mulInstruction& operator=(const mulInstruction&) = default;
+    zextInstruction(const string& dest, const string& src, const string type_src, const string& type_dest);
+    ~zextInstruction() = default;
+    zextInstruction& operator=(const zextInstruction&) = default;
+    zextInstruction(const zextInstruction&) = default;
     void emit() override;
+
 };
 
 
-class unsignedDivInstruction : Instruction{
-
-    string src1;
-    string src2;
+class truncInstruction : Instruction{
     string dest;
-    string type;
+    string src;
+    string type_src;
+    string type_dest;
 
 public:
-    unsignedDivInstruction(const string& src1, const string& src2,
-                           const string& dest, const string& type);
-
-    ~unsignedDivInstruction()= default;
-    unsignedDivInstruction& operator=( const unsignedDivInstruction&) =default;
-    unsignedDivInstruction(const unsignedDivInstruction&) = default;
-
+    truncInstruction(const string& dest, const string& src, const string type_src, const string& type_dest);
+    ~truncInstruction() = default;
+    truncInstruction& operator=(const truncInstruction&) = default;
+    truncInstruction(const truncInstruction&) = default;
     void emit() override;
-};
 
-class signedDivInstruction : Instruction{
-
-    string src1;
-    string src2;
-    string dest;
-    string type;
-
-public:
-    signedDivInstruction(const string& src1, const string& src2,
-                         const string& dest, const string& type);
-    ~signedDivInstruction()= default;
-    signedDivInstruction(const signedDivInstruction&) = default;
-    void emit() override;
 };
 
 
@@ -278,6 +242,45 @@ public:
 
     void emit() override;
 };
+
+
+
+class phiInstruction : Instruction{
+    string label1;
+    string label2;
+    string val1;
+    string val2;
+    string dest;
+    string type;
+
+public:
+    phiInstruction(const string& label1, const string& label2, const string&
+    val1, const string& val2, const string& dest, const string& type);
+    phiInstruction (const phiInstruction&) = default;
+    phiInstruction& operator=(const phiInstruction&) = default;
+    ~ phiInstruction() = default;
+
+    void emit() override;
+};
+
+
+class defineString : Instruction{
+
+    string src;
+    string placeName;
+    unsigned long long len;
+
+public:
+    defineString(const string& src, const string& placeName);
+    defineString (const defineString&) = default;
+    defineString& operator=(const defineString&) = default;
+    ~defineString() = default;
+
+    void emit() override;
+    unsigned long long getLen();
+
+};
+
 
 string addPercent(const string& s);
 
