@@ -15,7 +15,7 @@ class Instruction {
 public:
     Instruction()=default;
     ~Instruction() = default;
-    virtual void emit() = 0;
+    virtual void emit(bool is_global= false) = 0;
 
 
 };
@@ -35,7 +35,7 @@ public:
     binopInstruction& operator=( const binopInstruction&) = default;
     binopInstruction(const binopInstruction&) = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
 
 };
 
@@ -51,7 +51,7 @@ public:
     ~zextInstruction() = default;
     zextInstruction& operator=(const zextInstruction&) = default;
     zextInstruction(const zextInstruction&) = default;
-    void emit() override;
+    void emit(bool is_global= false) override;
 
 };
 
@@ -67,7 +67,7 @@ public:
     ~truncInstruction() = default;
     truncInstruction& operator=(const truncInstruction&) = default;
     truncInstruction(const truncInstruction&) = default;
-    void emit() override;
+    void emit(bool is_global= false) override;
 
 };
 
@@ -83,7 +83,8 @@ public:
     allocateVarInstruction& operator=(const allocateVarInstruction&) = default;
     ~allocateVarInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class allocateArrayInstruction : Instruction {
@@ -100,7 +101,8 @@ public:
     allocateArrayInstruction& operator=(const allocateArrayInstruction&) = default;
     ~allocateArrayInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class getElementPtrInstruction : Instruction {
@@ -121,7 +123,8 @@ public:
     getElementPtrInstruction& operator=(const getElementPtrInstruction&) = default;
     ~getElementPtrInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class storeInstruction : Instruction {
@@ -137,7 +140,8 @@ public:
     storeInstruction& operator=(const storeInstruction&) = default;
     ~storeInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class loadInstruction : Instruction {
@@ -153,7 +157,8 @@ public:
     loadInstruction& operator=(const loadInstruction&) = default;
     ~loadInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 
@@ -173,7 +178,8 @@ public:
     cmpInstruction& operator=( const cmpInstruction&) = default;
     cmpInstruction(const cmpInstruction&) = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class unconditionalBrInstruction : Instruction {
@@ -186,7 +192,8 @@ public:
     unconditionalBrInstruction& operator=(const unconditionalBrInstruction&) = default;
     ~unconditionalBrInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class conditionalBrInstruction : Instruction {
@@ -201,7 +208,8 @@ public:
     conditionalBrInstruction& operator=(const conditionalBrInstruction&) = default;
     ~conditionalBrInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class callInstruction : Instruction {
@@ -222,7 +230,8 @@ public:
     callInstruction& operator=(const callInstruction&) = default;
     ~callInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 class defineFuncInstruction : Instruction {
@@ -240,7 +249,8 @@ public:
     defineFuncInstruction& operator=(const defineFuncInstruction&) = default;
     ~defineFuncInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 
@@ -260,7 +270,8 @@ public:
     phiInstruction& operator=(const phiInstruction&) = default;
     ~ phiInstruction() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
 };
 
 
@@ -276,7 +287,8 @@ public:
     defineString& operator=(const defineString&) = default;
     ~defineString() = default;
 
-    void emit() override;
+    void emit(bool is_global= false) override;
+
     unsigned long long getLen();
 
 };

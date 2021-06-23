@@ -14,11 +14,12 @@ string addPercent(const string& s){
 binopInstruction::binopInstruction(const string &src1, const string &src2,
                                    const string &dest, const string &type,
                                    const string& instruction): src1(src1),
-                                   src2(src2), dest(dest), type(type){};
+                                   src2(src2), dest(dest), type(type), instruction(instruction){};
 
-void binopInstruction::emit(){
+void binopInstruction::emit(bool is_global){
     string inst = dest + " = " + instruction + " " + type+ " " + src1+", " + src2;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -27,9 +28,10 @@ zextInstruction::zextInstruction(const string &src, const string &dest,
                                  const string &type_dest): src(src), dest(dest),
                                  type_src(type_src), type_dest(type_dest){};
 
-void zextInstruction::emit(){
+void zextInstruction::emit(bool is_global){
     string inst = dest + "= zext " + type_src + " " + src + " to " + type_dest;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 truncInstruction::truncInstruction(const string &src, const string &dest,
@@ -37,28 +39,31 @@ truncInstruction::truncInstruction(const string &src, const string &dest,
                                    const string &type_dest): src(src), dest(dest),
                                    type_src(type_src), type_dest(type_dest){};
 
-void truncInstruction::emit(){
+void truncInstruction::emit(bool is_global){
     string inst = dest + "=trunc " + type_src + " " + src + " to " + type_dest;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
 allocateVarInstruction::allocateVarInstruction(const string& ptrName, const
 string& type) : ptrName(ptrName){}
 
-void allocateVarInstruction::emit() {
+void allocateVarInstruction::emit(bool is_global) {
     string inst = ptrName + " = alloca "+type;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
 allocateArrayInstruction::allocateArrayInstruction(const string& ptrName,
         const string& type, long long size) : ptrName(ptrName), type(type), size(size){}
 
-void allocateArrayInstruction::emit()  {
+void allocateArrayInstruction::emit(bool is_global)  {
     string inst = ptrName + " = alloca "+ type+ ", "+ type + " "+
     to_string(size);
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -69,7 +74,7 @@ getElementPtrInstruction::getElementPtrInstruction(const string& destPtr,
         arraySize(arraySize), targetArrayIndex(targetArrayIndex), targetElementIndex(targetElementIndex){}
 
 
-void getElementPtrInstruction::emit() {
+void getElementPtrInstruction::emit(bool is_global) {
     string arrayType;
     if (arraySize > 1){
         arrayType= "[" + to_string(arraySize)+" x "+ elemType+ "]";
@@ -85,16 +90,18 @@ void getElementPtrInstruction::emit() {
         inst+= "i32 " +targetArrayIndex+ ", ";
     }
     inst+= "i32 " + targetElementIndex;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 storeInstruction::storeInstruction(const string& ptrName, const string& type,
         const string& val) : ptrName(ptrName), type(type), val(val){}
 
 
-void storeInstruction::emit(){
+void storeInstruction::emit(bool is_global){
     string inst = "store " + type + " " + val+", "+ type + "*" + " "+ ptrName;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -102,9 +109,10 @@ void storeInstruction::emit(){
 loadInstruction::loadInstruction(const string& srcPtr,const string&
     destPtr, const string& type) : srcPtr(srcPtr), destPtr(destPtr), type(type){}
 
-void loadInstruction::emit(){
+void loadInstruction::emit(bool is_global){
     string inst = destPtr + " = load " + type + ", "+ type +"* "+ srcPtr;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 cmpInstruction::cmpInstruction(const string& src1, const string& src2, const
@@ -112,19 +120,21 @@ string& dest, const string& type, const string& cond) :src1(src1),src2(src2),
 dest(dest), type(type), cond(cond){}
 
 
-void cmpInstruction::emit(){
+void cmpInstruction::emit(bool is_global){
     string inst = dest + " = icmp " + cond + " "+ type+ " " + src1+", " +
             src2;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
 unconditionalBrInstruction::unconditionalBrInstruction(const string& label) :
 label(addPercent(label)){}
 
-void unconditionalBrInstruction::emit(){
+void unconditionalBrInstruction::emit(bool is_global){
     string inst = "br label "+label;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 conditionalBrInstruction::conditionalBrInstruction(const string& trueLabel,
@@ -132,10 +142,11 @@ conditionalBrInstruction::conditionalBrInstruction(const string& trueLabel,
     falseLabel, const string& regOfCmpRes) : trueLabel(addPercent(trueLabel)),
     falseLabel(addPercent(falseLabel)), regOfCmpRes(regOfCmpRes){}
 
-void conditionalBrInstruction::emit() {
+void conditionalBrInstruction::emit(bool is_global) {
     string inst = "br i1 " + regOfCmpRes+", label "+trueLabel+", label "
                                                              ""+falseLabel;
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -172,14 +183,15 @@ callInstruction::callInstruction(const vector<string>& types, const
 
 }
 
-void callInstruction::emit(){
+void callInstruction::emit(bool is_global){
     string inst;
     if(dest != ""){
         inst+= dest+ " = ";
     }
     string params = createParamsString();
     inst+= "call "+ retType +" "+ funcName+"("+params+")";
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -211,10 +223,11 @@ string& funcName, const string& retType) {
 
 }
 
-void defineFuncInstruction::emit(){
+void defineFuncInstruction::emit(bool is_global){
     string params = createParamsString();
     string inst = "define "+ retType+ " "+funcName +"("+params+")"+" {";
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -226,11 +239,12 @@ phiInstruction::phiInstruction(const string &label1, const string &label2,
                                dest(dest), type(type) {}
 
 
-void phiInstruction::emit() {
+void phiInstruction::emit(bool is_global) {
     string inst = dest + " = phi " + type  +" [" + val1 + ", " + label1 +"], ["+
                   val2 + ", " + label2 +"]";
 
-    CodeBuffer::instance().emit(inst);
+    if (is_global) CodeBuffer::instance().emitGlobal(inst);
+    else CodeBuffer::instance().emit(inst);
 }
 
 
@@ -239,7 +253,7 @@ defineString::defineString(const string &src, const string& placeName){
     len = this->src.length()+1;
     this->placeName = placeName;
 }
-void defineString::emit(){
+void defineString::emit(bool is_global){
     string inst = placeName+ " = constant [" + to_string(len)+" x i8] c\"" + src +
                   "\\00\"";
     CodeBuffer::instance().emitGlobal(inst);

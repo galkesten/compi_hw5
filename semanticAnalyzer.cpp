@@ -78,22 +78,22 @@ ret_type , const vector<string>& argsTypes,
 
 
 void closeScope(){
-    output::endScope();
+//    output::endScope();
     scope& curr_scope = scopes.top();
     vector<symbolTableTuple>& curr_table = tables.getTable(curr_scope
             .table_index);
-    for(auto& symbol : curr_table){
-        string name = symbol.name;
-        long long offset = symbol.offset;
-        string type;
-        if(symbol.is_func){
-            type = output::makeFunctionType(symbol.type, symbol.argsTypes);
-        }
-        else{
-            type = symbol.type;
-        }
-        output::printID(name, offset, type);
-    }
+//    for(auto& symbol : curr_table){
+//        string name = symbol.name;
+//        long long offset = symbol.offset;
+//        string type;
+//        if(symbol.is_func){
+//            type = output::makeFunctionType(symbol.type, symbol.argsTypes);
+//        }
+//        else{
+//            type = symbol.type;
+//        }
+//        output::printID(name, offset, type);
+//    }
     if(curr_scope.scope_type == WHILE_BLOCK)
         isWhile--;
     if(curr_scope.scope_type == SWITCH_BLOCK)

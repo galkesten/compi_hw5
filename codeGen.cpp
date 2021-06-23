@@ -23,22 +23,25 @@ void genBinopInstruction(semanticAttributes& dest, const semanticAttributes& num
     string temp = codeGen::instance().newVar();
     dest.place = temp;
     if (instruction == "sdiv") {
-        string dest_comp = codeGen::instance().newVar();
-        cmpInstruction cmp(num2.place, to_string(0), dest_comp, "i32", "eq");
-        cmp.emit();
-        conditionalBrInstruction br("%label_true", "%label_false", dest_comp);
-        br.emit();
-        CodeBuffer::instance().emit("label_true:");
-        string string_error = codeGen::instance().newVar();
-        getElementPtrInstruction elem_prt(string_error,
-                "@.error_zero", "i8", 23, "0", "0");
-        elem_prt.emit();
-        string to_emit = "call void (i8*) @print(i8*" + string_error + ")";
-        CodeBuffer::instance().emit(to_emit);
-        CodeBuffer::instance().emit("call void (i32) @exit(i32 0)");
-        CodeBuffer::instance().emit("label_false:");
+        CodeBuffer::instance().emit("call void (i32) @error_zero(i32 " + num2.place + ")");
+
+//        string dest_comp = codeGen::instance().newVar();
+//        cmpInstruction cmp(num2.place, to_string(0), dest_comp, "i32", "eq");
+//        cmp.emit();
+//        conditionalBrInstruction br("%label_true", "%label_false", dest_comp);
+//        br.emit();
+//        CodeBuffer::instance().emit("%label_true:");
+//        string string_error = codeGen::instance().newVar();
+//        getElementPtrInstruction elem_prt(string_error,
+//                "@.error_zero", "i8", 23, "0", "0");
+//        elem_prt.emit();
+//        string to_emit = "call void (i8*) @print(i8* " + string_error + ")";
+//        CodeBuffer::instance().emit(to_emit);
+//        CodeBuffer::instance().emit("call void (i32) @exit(i32 0)");
+//        CodeBuffer::instance().emit("%label_false:");
     }
     binopInstruction bin(num1.place, num2.place, dest.place, "i32", instruction);
+    bin.emit();
     if (dest.type == "BYTE") {
         string dest_trunc = codeGen::instance().newVar();
         string dest_zext = codeGen::instance().newVar();
@@ -51,7 +54,7 @@ void genBinopInstruction(semanticAttributes& dest, const semanticAttributes& num
 }
 
 
-void genNum(semanticAttributes& attribute) {
+void genInt(semanticAttributes& attribute) {
     attribute.place = codeGen::instance().newVar();
     binopInstruction inst(to_string(attribute.intVal), to_string(0), attribute.place, "i32",
                           "add");
@@ -67,7 +70,6 @@ void genByte(semanticAttributes& attribute) {
 
 
 void addPrintFunctionsToGlobalScope() {
-
     CodeBuffer::instance().emitGlobal("declare i32 @printf(i8*, ...)");
     CodeBuffer::instance().emitGlobal("declare void @exit(i32)");
     CodeBuffer::instance().emitGlobal("@.int_specifier = constant [4 x i8] c\"%d\\0A\\00\"");
@@ -87,6 +89,25 @@ void addPrintFunctionsToGlobalScope() {
     CodeBuffer::instance().emitGlobal("call i32 (i8*, ...) @printf(i8* %spec_ptr, i8* %0)");
     CodeBuffer::instance().emitGlobal("ret void");
     CodeBuffer::instance().emitGlobal("}");
+    CodeBuffer::instance().emitGlobal("define void @error_zero(i32) {");
+    string dest_comp = codeGen::instance().newVar();
+    cmpInstruction cmp("%0", to_string(0), dest_comp, "i32", "eq");
+    cmp.emit(true);
+    conditionalBrInstruction br("%label_true", "%label_false", dest_comp);
+    br.emit(true);
+    CodeBuffer::instance().emitGlobal("label_true:");
+    string string_error = codeGen::instance().newVar();
+    getElementPtrInstruction elem_prt(string_error,
+            "@.error_zero", "i8", 23, "0", "0");
+    elem_prt.emit(true);
+    string to_emit = "call void (i8*) @print(i8* " + string_error + ")";
+    CodeBuffer::instance().emitGlobal(to_emit);
+    CodeBuffer::instance().emitGlobal("call void (i32) @exit(i32 0)");
+    CodeBuffer::instance().emitGlobal("ret void");
+    CodeBuffer::instance().emitGlobal("label_false:");
+    CodeBuffer::instance().emitGlobal("ret void");
+    CodeBuffer::instance().emitGlobal("}");
+
 }
 
 void printCode(){

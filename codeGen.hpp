@@ -14,11 +14,11 @@ public:
 };
 
 
-void genBinopInstruction(const semanticAttributes& dest, const semanticAttributes& num1,
+void genBinopInstruction(semanticAttributes& dest, const semanticAttributes& num1,
                          const semanticAttributes& num2, const string& instruction);
 
-void genNum(const semanticAttributes& attribute);
-void genByte(const semanticAttributes& attribute);
-void genString(const semanticAttributes& attribute);
+void genInt(semanticAttributes& attribute);
+void genByte(semanticAttributes& attribute);
+void genString(semanticAttributes& attribute);
 void addPrintFunctionsToGlobalScope();
 void printCode();
