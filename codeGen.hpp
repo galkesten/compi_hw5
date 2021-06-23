@@ -1,6 +1,7 @@
 
 #include "Instructions.h"
 #include "semanticAnalyzer.h"
+#include "bp.hpp"
 
 class codeGen{
     int count_var=0;
@@ -22,3 +23,9 @@ void genByte(semanticAttributes& attribute);
 void genString(semanticAttributes& attribute);
 void addPrintFunctionsToGlobalScope();
 void printCode();
+void genBool(semanticAttributes& boolAttribute, bool boolVal);
+void genNotBool(semanticAttributes& dest, const semanticAttributes& src);
+void genBoolOr(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2);
+void genBoolAnd(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2);
+void genRelational(semanticAttributes& dest, const semanticAttributes& exp1, const string& op, const semanticAttributes& exp2);
+void genMarker(semanticAttributes& m);

@@ -50,6 +50,9 @@ FormalDecl : Type ID {$$.variablesTypes = {$1.type}; $$.variablesValues = {$2.st
 Statements : Statement {}
 			| Statements Statement {}
 ;
+M : {genMarker($$);}
+;
+
 Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
 			| Type ID SC {addNewVar($2.stringVal, $1.type);}
 			| Type ID ASSIGN Exp SC {checkAssignType($1.type, $4.type); addNewVar($2.stringVal, $1.type);}
@@ -102,15 +105,15 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type;}
 	         $$.byteVal = $1.intVal;
 	         $$.type = "BYTE"; genByte($$);}
 	| STRING {$$.type = "STRING"; $$.stringVal = $1.stringVal; genString($$);}
-	| TRUE {$$.type = "BOOL";}
-	| FALSE {$$.type = "BOOL";}
-	| NOT Exp {$$.type = checkBoolType($2.type, $2.type);}
-	| Exp AND Exp {$$.type = checkBoolType($1.type, $3.type);}
-	| Exp OR Exp {$$.type = checkBoolType($1.type, $3.type);}
+	| TRUE {$$.type = "BOOL"; genBool($$, true);}
+	| FALSE {$$.type = "BOOL"; genBool($$, false);}
+	| NOT Exp {$$.type = checkBoolType($2.type, $2.type); genNotBool($$, $2);}
+	| Exp AND M Exp {$$.type = checkBoolType($1.type, $3.type);genBoolAnd($$, $1, $3, $4);}
+	| Exp OR M Exp {$$.type = checkBoolType($1.type, $3.type); genBoolOr($$, $1, $3, $4);}
 	| Exp RELATIONAL Exp {checkNumericType($1.type, $3.type);
-	                      $$.type = "BOOL";}
+	                      $$.type = "BOOL"; genRelational($$, $1, $2.stringVal, $3);}
 	| Exp EQUALITY Exp {checkNumericType($1.type, $3.type);
-                       	                $$.type = "BOOL";}
+                        $$.type = "BOOL"; genRelational($$, $1, $2.stringVal, $3);}
 ;
 CaseList : CaseDecl CaseList {}
 		| CaseDecl {}

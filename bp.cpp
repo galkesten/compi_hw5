@@ -71,6 +71,11 @@ void CodeBuffer::printGlobalBuffer()
 	}
 }
 
+int CodeBuffer::getSize(){
+	return buffer.size() - 1;
+}
+
+
 // ******** Helper Methods ********** //
 bool replace(string& str, const string& from, const string& to, const BranchLabelIndex index) {
 	size_t pos;
@@ -86,6 +91,3 @@ bool replace(string& str, const string& from, const string& to, const BranchLabe
     return true;
 }
 
-int CodeBuffer::getSize(){
-    return buffer.size() - 1;
-}

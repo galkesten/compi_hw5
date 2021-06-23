@@ -1,6 +1,7 @@
 #include "codeGen.hpp"
 
 
+
 codeGen &codeGen::instance(){
     static  codeGen inst;
     return inst;
@@ -134,6 +135,57 @@ void genString(semanticAttributes& node) {
 
 }
 
+
+void genBool(semanticAttributes& boolAttribute, bool boolVal){
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int inst_loc = CodeBuffer::instance().getSize();
+    if (boolVal)
+        boolAttribute.trueList.push_back(make_pair(inst_loc,FIRST));
+    else
+        boolAttribute.falseList.push_back(make_pair(inst_loc,SECOND));
+}
+
+void genNotBool(semanticAttributes& dest, const semanticAttributes& src){
+    dest.trueList=src.falseList;
+    dest.falseList=src.trueList;
+}
+
+void genBoolOr(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2){
+    CodeBuffer::instance().bpatch(exp1.falseList, m.label);
+    dest.trueList = CodeBuffer::merge(exp1.trueList, exp2.trueList);
+    dest.falseList = exp2.falseList;
+}
+
+void genBoolAnd(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2){
+    CodeBuffer::instance().bpatch(exp1.trueList, m.label);
+    dest.falseList=CodeBuffer::merge(exp1.falseList, exp2.falseList);
+    dest.trueList = exp2.trueList;
+}
+
+void genRelational(semanticAttributes& dest, const semanticAttributes& exp1, const string& op, const semanticAttributes& exp2){
+    string operation;
+    string var = codeGen::instance().newVar();
+    if (op == "==") operation = "eq";
+    else if (op=="!=") operation="ne";
+    else if (op=="<") operation="slt";
+    else if (op=="<=") operation="sle";
+    else if (op==">") operation="sgt";
+    else if (op==">=") operation="sge";
+    cmpInstruction cmp(exp1.place, exp2.place, var, "i32", op);
+    cmp.emit();
+    conditionalBrInstruction br("label @", "label @", var);
+    br.emit();
+    int inst_loc = CodeBuffer::instance().getSize();
+    dest.trueList.push_back(make_pair(inst_loc, FIRST));
+    dest.falseList.push_back(make_pair(inst_loc, SECOND));
+}
+
+
+void genMarker(semanticAttributes& m){
+    string label=CodeBuffer::instance().genLabel();
+    m.label=label;
+}
 //void genString(const semanticAttributes& attribute) {
 //    attribute.place = codeGen::instance().newVar();
 //    binopInstruction inst(attribute.byteVal, to_string(0), attribute.place, "i32",
@@ -147,3 +199,4 @@ void genString(semanticAttributes& node) {
 //    if (attribute.type=="STRING") val=attribute.stringVar
 //    binopInstruction b(val, toString(0),attribute.place, "i32", "add")
 //}
+
