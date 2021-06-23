@@ -5,6 +5,7 @@
 #ifndef COMPI_HW3_SEMANTICANALYZER_H
 #define COMPI_HW3_SEMANTICANALYZER_H
 #include "hw3_output.hpp"
+#include "bp.hpp"
 
 #include <string>
 #include <vector>
@@ -21,7 +22,11 @@ struct semanticAttributes{
     std::vector<string> variablesValues;
     std::vector<string> variablesTypes;
     string place;
-
+    vector<string> varPlaces;
+    string label;
+    vector<pair<int,BranchLabelIndex>> trueList;
+    vector<pair<int,BranchLabelIndex>> falseList;
+    vector<pair<int,BranchLabelIndex>> nextList;
 };
 
 #define YYSTYPE semanticAttributes
