@@ -5,6 +5,8 @@
 #include "Instructions.h"
 
 string addPercent(const string& s){
+    if(s[0]== '@')
+        return;
     if (s[0]!='%'){
         return "%"+s;
     }
