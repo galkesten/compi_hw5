@@ -86,3 +86,6 @@ bool replace(string& str, const string& from, const string& to, const BranchLabe
     return true;
 }
 
+int CodeBuffer::getSize(){
+    return buffer.size() - 1;
+}

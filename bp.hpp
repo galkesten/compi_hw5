@@ -57,7 +57,7 @@ public:
 	void emitGlobal(const string& dataLine);
 	//print the content of the global buffer to stdout
 	void printGlobalBuffer();
-
+    int getSize();
 };
 
 #endif
