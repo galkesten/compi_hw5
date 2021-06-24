@@ -59,6 +59,7 @@ public:
     bool isSymbolExist(const string& name);
 
     string getType(const string& symbol);
+    long long getOffset(const string &symbol);
     vector<string>& getFuncArgs(const string& name);
     vector<symbolTableTuple>& getTable(long long index);
 

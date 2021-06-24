@@ -1,7 +1,9 @@
 #include "codeGen.hpp"
+#include "symbolTables.h"
 
+extern symbolTables tables;
 
-
+typedef long long ll;
 codeGen &codeGen::instance(){
     static  codeGen inst;
     return inst;
@@ -186,6 +188,63 @@ void genMarker(semanticAttributes& m){
     string label=CodeBuffer::instance().genLabel();
     m.label=label;
 }
+void genLoad(semanticAttributes& dest, semanticAttributes& id){
+    auto& gen_inst = codeGen::instance();
+    ll offset = tables.getOffset(id.stringVal);
+    if (offset == -1) { // this symbol is func arg;
+        dest.place= "%" + to_string(-(offset+1));
+    }
+    else{
+        string varPointer = gen_inst.newVar();
+        getElementPtrInstruction getelem(varPointer, gen_inst.curr_func_stack_pointer, "i32", 50,
+                                         "0", to_string(offset));
+        getelem.emit();
+        string res = gen_inst.newVar();
+        loadInstruction load(varPointer, res, "i32");
+        load.emit();
+        dest.place = res;
+    }
+    if(dest.type == "BOOL"){
+        string boolVal = gen_inst.newVar();
+        truncInstruction tr(dest.place, boolVal, "i32", "i1");
+        tr.emit();
+        conditionalBrInstruction br("@", "@", boolVal);
+        br.emit();
+        int address = CodeBuffer::instance().getSize();
+        dest.trueList.push_back(make_pair(address,FIRST));
+        dest.falseList.push_back(make_pair(address,SECOND));
+    }
+}
+
+/*
+void genLoad(semanticAttributes& dest, semanticAttributes& , long long offset){
+    auto& gen_inst = codeGen::instance();
+    ll offset = tables.getOffset(id.stringVal);
+    if (offset == -1) { // this symbol is func arg;
+        dest.place= "%" + to_string(-(offset+1));
+    }
+    else{
+        string varPointer = gen_inst.newVar();
+        getElementPtrInstruction getelem(varPointer, gen_inst.curr_func_stack_pointer, "i32", 50,
+                                         "0", to_string(offset));
+        getelem.emit();
+        string res = gen_inst.newVar();
+        loadInstruction load(res, varPointer, "i32");
+        load.emit();
+        dest.place = res;
+    }
+    if(dest.type == "BOOL"){
+        string boolVal = gen_inst.newVar();
+        truncInstruction(boolVal, dest.place, "i32", "i1");
+        conditionalBrInstruction br("@", "@", boolVal);
+        br.emit();
+        int address = CodeBuffer::instance().getSize();
+        dest.trueList.push_back(make_pair(address,FIRST));
+        dest.falseList.push_back(make_pair(address,SECOND));
+    }
+}
+ */
+>>>>>>> e32fbaa (gal changes)
 //void genString(const semanticAttributes& attribute) {
 //    attribute.place = codeGen::instance().newVar();
 //    binopInstruction inst(attribute.byteVal, to_string(0), attribute.place, "i32",

@@ -5,12 +5,14 @@
 
 class codeGen{
     int count_var=0;
+
     codeGen() = default;
 public:
-
+    string curr_func_stack_pointer;
     static codeGen& instance();
     string newVar();
     string newStringVar();
+
 
 };
 
@@ -29,3 +31,4 @@ void genBoolOr(semanticAttributes& dest, const semanticAttributes& exp1, const s
 void genBoolAnd(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2);
 void genRelational(semanticAttributes& dest, const semanticAttributes& exp1, const string& op, const semanticAttributes& exp2);
 void genMarker(semanticAttributes& m);
+void genLoad(semanticAttributes& dest, semanticAttributes& id, long long offset);

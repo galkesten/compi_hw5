@@ -63,7 +63,8 @@ class truncInstruction : Instruction{
     string type_dest;
 
 public:
-    truncInstruction(const string& dest, const string& src, const string type_src, const string& type_dest);
+    truncInstruction( const string& src, const string& dest, const string type_src, const string&
+    type_dest);
     ~truncInstruction() = default;
     truncInstruction& operator=(const truncInstruction&) = default;
     truncInstruction(const truncInstruction&) = default;

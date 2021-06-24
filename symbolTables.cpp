@@ -158,6 +158,24 @@ string symbolTables::getType(const string &symbol) {
 
 }
 
+long long symbolTables::getOffset(const string &symbol) {
+
+    long long i = tables.size()-1;
+    long long offset = -1;
+    while(i>=0){
+        int res = lookForString(symbol, tables[i]);
+        if(res > -1){
+            offset = tables[i][res].offset;
+            break;
+
+        }
+        --i;
+    }
+    return offset;
+
+}
+
+
 vector<string>& symbolTables::getFuncArgs(const string &name) {
     long long i = tables.size()-1;
     while(i>=0){
