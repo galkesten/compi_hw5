@@ -16,7 +16,7 @@ string addPercent(const string& s){
 binopInstruction::binopInstruction(const string &src1, const string &src2,
                                    const string &dest, const string &type,
                                    const string& instruction): src1(src1),
-                                   src2(src2), dest(dest), type(type), instruction(instruction){};
+                                   src2(src2), dest(dest), type(type), instruction(instruction){}
 
 void binopInstruction::emit(bool is_global){
     string inst = dest + " = " + instruction + " " + type+ " " + src1+", " + src2;
@@ -25,13 +25,13 @@ void binopInstruction::emit(bool is_global){
 }
 
 
-zextInstruction::zextInstruction(const string &src, const string &dest,
-                                 const string type_src,
+zextInstruction::zextInstruction(const string &src, const string& dest,
+                                 const string& type_src,
                                  const string &type_dest): src(src), dest(dest),
-                                 type_src(type_src), type_dest(type_dest){};
+                                 type_src(type_src), type_dest(type_dest){}
 
 void zextInstruction::emit(bool is_global){
-    string inst = dest + "= zext " + type_src + " " + src + " to " + type_dest;
+    string inst = dest + " = zext " + type_src + " " + src + " to " + type_dest;
     if (is_global) CodeBuffer::instance().emitGlobal(inst);
     else CodeBuffer::instance().emit(inst);
 }
@@ -39,10 +39,10 @@ void zextInstruction::emit(bool is_global){
 truncInstruction::truncInstruction(const string &src, const string &dest,
                                    const string type_src,
                                    const string &type_dest): src(src), dest(dest),
-                                   type_src(type_src), type_dest(type_dest){};
+                                   type_src(type_src), type_dest(type_dest){}
 
 void truncInstruction::emit(bool is_global){
-    string inst = dest + "=trunc " + type_src + " " + src + " to " + type_dest;
+    string inst = dest + " = trunc " + type_src + " " + src + " to " + type_dest;
     if (is_global) CodeBuffer::instance().emitGlobal(inst);
     else CodeBuffer::instance().emit(inst);
 }
@@ -62,8 +62,7 @@ allocateArrayInstruction::allocateArrayInstruction(const string& ptrName,
         const string& type, long long size) : ptrName(ptrName), type(type), size(size){}
 
 void allocateArrayInstruction::emit(bool is_global)  {
-    string inst = ptrName + " = alloca "+ type+ ", "+ type + " "+
-    to_string(size);
+    string inst = ptrName + " = alloca ["+ to_string(size)+" x "+type+"]";
     if (is_global) CodeBuffer::instance().emitGlobal(inst);
     else CodeBuffer::instance().emit(inst);
 }
@@ -155,7 +154,7 @@ void conditionalBrInstruction::emit(bool is_global) {
 
 string callInstruction::createParamsString(){
     string params="";
-    for(int i=0; i< types.size(); ++i){
+    for(unsigned int i=0; i< types.size(); ++i){
         params+= types[i];
         params+= " ";
         params+= places[i];
@@ -174,7 +173,7 @@ callInstruction::callInstruction(const vector<string>& types, const
     this->retType = (retType=="VOID"? "void" : "i32");
     this->dest = dest;
     this->places = places;
-    for(int i=0; i<types.size(); i++) {
+    for(unsigned int i=0; i<types.size(); i++) {
         if(types[i] == "STRING"){
             this->types.push_back("i8*");
         }
@@ -201,7 +200,7 @@ void callInstruction::emit(bool is_global){
 
 string defineFuncInstruction::createParamsString(){
     string params="";
-    for(int i=0; i< types.size(); ++i){
+    for(unsigned int i=0; i< types.size(); ++i){
         params+= types[i];
         if(i!=types.size()-1){
             params+=", ";
@@ -214,7 +213,7 @@ defineFuncInstruction::defineFuncInstruction(const vector<string>& types,const
 string& funcName, const string& retType) {
     this->funcName = "@"+ funcName;
     this->retType = (retType=="VOID"? "void" : "i32");
-    for(int i=0; i<types.size(); i++) {
+    for(unsigned int i=0; i<types.size(); i++) {
         if(types[i] == "STRING"){
             this->types.push_back("i8*");
         }
@@ -264,6 +263,7 @@ void defineString::emit(bool is_global){
 unsigned long long defineString::getLen() {
     return len;
 }
+
 //
 // int main(){
 //

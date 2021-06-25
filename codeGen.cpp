@@ -1,9 +1,16 @@
 #include "codeGen.hpp"
 #include "symbolTables.h"
-
+#include <iostream>
 extern symbolTables tables;
 
 typedef long long ll;
+
+void printVector(const vector<pair<int,BranchLabelIndex>>& address_list){
+    for(auto& elem : address_list){
+        std::cout << "row : " << elem.first << " Label: " << elem.second << std::endl;
+    }
+}
+
 codeGen &codeGen::instance(){
     static  codeGen inst;
     return inst;
@@ -15,11 +22,6 @@ string codeGen::newVar(){
     return var_name;
 }
 
-// code_gen::newString(){
-//    new_str = "@.str" + to_string(var_counter);
-//    var_counter++;
-//    return new_str;
-//}
 
 void genBinopInstruction(semanticAttributes& dest, const semanticAttributes& num1,
                            const semanticAttributes& num2, const string& instruction) {
@@ -66,6 +68,7 @@ void genInt(semanticAttributes& attribute) {
 
 void genByte(semanticAttributes& attribute) {
     attribute.place = codeGen::instance().newVar();
+    //cout<< "byte val" << (int)attribute.byteVal << endl;
     binopInstruction inst(to_string(attribute.byteVal), to_string(0), attribute.place, "i32",
                        "add");
     inst.emit();
@@ -139,13 +142,15 @@ void genString(semanticAttributes& node) {
 
 
 void genBool(semanticAttributes& boolAttribute, bool boolVal){
-    unconditionalBrInstruction br("@");
+    string val = "0";
+    if(boolVal){
+        val ="1";
+    }
+    conditionalBrInstruction br("@", "@", val);
     br.emit();
     int inst_loc = CodeBuffer::instance().getSize();
-    if (boolVal)
-        boolAttribute.trueList.push_back(make_pair(inst_loc,FIRST));
-    else
-        boolAttribute.falseList.push_back(make_pair(inst_loc,SECOND));
+    boolAttribute.trueList.push_back(make_pair(inst_loc,FIRST));
+    boolAttribute.falseList.push_back(make_pair(inst_loc,SECOND));
 }
 
 void genNotBool(semanticAttributes& dest, const semanticAttributes& src){
@@ -174,14 +179,16 @@ void genRelational(semanticAttributes& dest, const semanticAttributes& exp1, con
     else if (op=="<=") operation="sle";
     else if (op==">") operation="sgt";
     else if (op==">=") operation="sge";
-    cmpInstruction cmp(exp1.place, exp2.place, var, "i32", op);
+    cmpInstruction cmp(exp1.place, exp2.place, var, "i32", operation);
     cmp.emit();
-    conditionalBrInstruction br("label @", "label @", var);
+    conditionalBrInstruction br("@", "@", var);
     br.emit();
     int inst_loc = CodeBuffer::instance().getSize();
     dest.trueList.push_back(make_pair(inst_loc, FIRST));
     dest.falseList.push_back(make_pair(inst_loc, SECOND));
+    dest.place = var;
 }
+
 
 
 void genMarker(semanticAttributes& m){
@@ -191,7 +198,7 @@ void genMarker(semanticAttributes& m){
 void genLoad(semanticAttributes& dest, semanticAttributes& id){
     auto& gen_inst = codeGen::instance();
     ll offset = tables.getOffset(id.stringVal);
-    if (offset == -1) { // this symbol is func arg;
+    if (offset < 0) { // this symbol is func arg;
         dest.place= "%" + to_string(-(offset+1));
     }
     else{
@@ -215,47 +222,188 @@ void genLoad(semanticAttributes& dest, semanticAttributes& id){
         dest.falseList.push_back(make_pair(address,SECOND));
     }
 }
+void setReturn(bool val = false){
+    auto& generator = codeGen::instance();
+    generator.ReturnWasLastStatement = val;
 
-/*
-void genLoad(semanticAttributes& dest, semanticAttributes& , long long offset){
-    auto& gen_inst = codeGen::instance();
-    ll offset = tables.getOffset(id.stringVal);
-    if (offset == -1) { // this symbol is func arg;
-        dest.place= "%" + to_string(-(offset+1));
+}
+void genFuncDefenition(const string& funcName){
+    string retType = tables.getType(funcName);
+    vector<string>& argTypes = tables.getFuncArgs(funcName);
+    defineFuncInstruction func(argTypes,funcName, retType);
+    func.emit();
+    string place = codeGen::instance().newVar();
+    allocateArrayInstruction allocate(place, "i32", 50);
+    allocate.emit();
+    codeGen::instance().curr_func_stack_pointer = place;
+}
+
+
+string genCodeForDecidingBoolExpVal(semanticAttributes& exp){
+   auto& buffer = CodeBuffer::instance();
+   auto& generator = codeGen::instance();
+   string trueLabel = buffer.genLabel();
+   string trueReg = generator.newVar();
+   binopInstruction calcTrue("1", "0", trueReg, "i32", "add");
+   calcTrue.emit();
+   unconditionalBrInstruction br("@");
+   br.emit();
+   int add1 = buffer.getSize();
+   string falseLabel = buffer.genLabel();
+   string falseReg = generator.newVar();
+   binopInstruction calcFalse("0", "0", falseReg, "i32", "add");
+   calcFalse.emit();
+   br.emit();
+   int add2 = buffer.getSize();
+   string finalLabel = buffer.genLabel();
+   string finalReg =  generator.newVar();
+   phiInstruction phi(trueLabel, falseLabel, trueReg, falseReg, finalReg, "i32");
+   phi.emit();
+   buffer.bpatch(buffer.makelist({add1, FIRST}), finalLabel);
+   buffer.bpatch(buffer.makelist({add2, FIRST}), finalLabel);
+   buffer.bpatch(exp.trueList, trueLabel);
+   buffer.bpatch(exp.falseList, falseLabel);
+   return finalReg;
+}
+void genIntReturn(semanticAttributes& exp){
+    auto& buffer = CodeBuffer::instance();
+    string res;
+    if(exp.type == "BOOL"){
+        res = genCodeForDecidingBoolExpVal(exp);
     }
     else{
-        string varPointer = gen_inst.newVar();
-        getElementPtrInstruction getelem(varPointer, gen_inst.curr_func_stack_pointer, "i32", 50,
-                                         "0", to_string(offset));
-        getelem.emit();
-        string res = gen_inst.newVar();
-        loadInstruction load(res, varPointer, "i32");
-        load.emit();
-        dest.place = res;
+        res = exp.place;
     }
-    if(dest.type == "BOOL"){
-        string boolVal = gen_inst.newVar();
-        truncInstruction(boolVal, dest.place, "i32", "i1");
-        conditionalBrInstruction br("@", "@", boolVal);
-        br.emit();
-        int address = CodeBuffer::instance().getSize();
-        dest.trueList.push_back(make_pair(address,FIRST));
-        dest.falseList.push_back(make_pair(address,SECOND));
-    }
+    buffer.emit("ret i32 " + res);
 }
- */
->>>>>>> e32fbaa (gal changes)
-//void genString(const semanticAttributes& attribute) {
-//    attribute.place = codeGen::instance().newVar();
-//    binopInstruction inst(attribute.byteVal, to_string(0), attribute.place, "i32",
-//                       "add");
-//    inst.emit();
-//}
-//void genVar(const semanticAttribute& attribute){
-//    attribute.place = code_gen::instance().newVar();
-//    if (attribute.type=="BYTE") val=attribute.byteVar
-//    if (attribute.type=="INT") val=attribute.intVar
-//    if (attribute.type=="STRING") val=attribute.stringVar
-//    binopInstruction b(val, toString(0),attribute.place, "i32", "add")
-//}
+
+void genVoidReturn(){
+    auto& buffer = CodeBuffer::instance();
+    buffer.emit("ret void");
+}
+
+void genCloseFunc(const string& retType){
+    auto& buffer = CodeBuffer::instance();
+    if(retType != "VOID"){
+        buffer.emit("ret i32 0");
+    }
+    else{
+        genVoidReturn();
+    }
+
+    buffer.emit("}");
+}
+
+string genFuncCall(const semanticAttributes& explist, const string& funcName ){
+    string retType = tables.getType(funcName);
+    string dest = "";
+    if(retType != "VOID"){
+        dest = codeGen::instance().newVar();
+    }
+    callInstruction call(explist.variablesTypes, explist.variablesPlaces, funcName, retType, dest);
+    call.emit();
+    return dest;
+}
+
+void genVoidFuncCall(const string& funcName ){
+    string retType = tables.getType(funcName);
+    string dest = "";
+
+    callInstruction call(vector<string>(), vector<string>(), funcName, retType, dest);
+    call.emit();
+}
+
+void genVarStore(const string& varName, semanticAttributes& exp, bool is_default) {
+    auto& gen_inst = codeGen::instance();
+    ll offset = tables.getOffset(varName);
+    string varPointer = gen_inst.newVar();
+
+    string src;
+    if(!is_default){
+        if(exp.type == "BOOL"){
+            src = genCodeForDecidingBoolExpVal(exp);
+        }
+        else{
+            src = exp.place;
+        }
+    }
+    else{
+        src = gen_inst.newVar();
+        binopInstruction calcDefault("0", "0", src, "i32", "add");
+        calcDefault.emit();
+    }
+    getElementPtrInstruction getelem(varPointer, gen_inst.curr_func_stack_pointer, "i32", 50,
+                                     "0", to_string(offset));
+    getelem.emit();
+
+    storeInstruction store(varPointer, "i32", src);
+    store.emit();
+}
+
+void genBoolValForFuncArg(semanticAttributes& exp){
+    if(exp.type != "BOOL")
+        return;
+    exp.place = genCodeForDecidingBoolExpVal(exp);
+}
+
+void genBoolRetType(semanticAttributes& exp){
+    auto& gen_inst = codeGen::instance();
+    if(exp.type!= "BOOL")
+        return;
+    string boolVal = gen_inst.newVar();
+    truncInstruction tr(exp.place, boolVal, "i32", "i1");
+    tr.emit();
+    conditionalBrInstruction br("@", "@", boolVal);
+    br.emit();
+    int address = CodeBuffer::instance().getSize();
+    exp.trueList.push_back(make_pair(address,FIRST));
+    exp.falseList.push_back(make_pair(address,SECOND));
+}
+
+
+void genBrForNextList(semanticAttributes& dest){
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int address = CodeBuffer::instance().getSize();
+    dest.nextList.push_back(make_pair(address,FIRST));
+}
+
+void genIfNoElse(semanticAttributes& dest, semanticAttributes& ifExp, semanticAttributes&
+    markerBeforeStatement){
+    // before we entered this func we created with markerBeforeStatment a label for the if statement
+    // so we know that we need to bpatch the ifExp trueList to the label of the marker
+    // because we ended the ifExp we need to say it to jump to NextStamtement so we created
+    // uncoditional branch to @ (we will fill it out later)
+    // we also merged the falseList ti nextStatment because if the exp is false we want to jump
+    // to the same place we will jump after the if.
+    auto& buffer = CodeBuffer::instance();
+    buffer.bpatch(ifExp.trueList, markerBeforeStatement.label);
+    genBrForNextList(dest);
+    dest.nextList = CodeBuffer::merge(dest.nextList, ifExp.falseList);
+}
+
+
+void genIfElse(semanticAttributes& dest, semanticAttributes& ifExp, semanticAttributes&
+markerBeforeIfStatement, semanticAttributes& markerBeforeElseStatement, semanticAttributes& N){
+    auto& buffer = CodeBuffer::instance();
+    buffer.bpatch(ifExp.trueList, markerBeforeIfStatement.label);
+    buffer.bpatch(ifExp.falseList, markerBeforeElseStatement.label);
+    genBrForNextList(dest);//for the Else
+    dest.nextList = CodeBuffer::merge(dest.nextList, N.nextList);
+}
+
+string createNextLabelAndBpatchNextList(semanticAttributes& statement){
+    auto& buffer = CodeBuffer::instance();
+    if(statement.nextList.empty())
+        return "";
+    string nextLabel =buffer.genLabel();
+    buffer.bpatch(statement.nextList, nextLabel);
+    statement.nextList.clear();
+    return nextLabel;
+
+}
+void mergeNextLists(semanticAttributes& dest, semanticAttributes& src1, semanticAttributes& src2){
+    auto& buffer = CodeBuffer::instance();
+    dest.nextList = buffer.merge(src1.nextList, src2.nextList);
+}
 

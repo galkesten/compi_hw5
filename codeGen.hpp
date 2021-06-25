@@ -9,6 +9,7 @@ class codeGen{
     codeGen() = default;
 public:
     string curr_func_stack_pointer;
+    bool ReturnWasLastStatement = false;
     static codeGen& instance();
     string newVar();
     string newStringVar();
@@ -31,4 +32,21 @@ void genBoolOr(semanticAttributes& dest, const semanticAttributes& exp1, const s
 void genBoolAnd(semanticAttributes& dest, const semanticAttributes& exp1, const semanticAttributes& m, const semanticAttributes& exp2);
 void genRelational(semanticAttributes& dest, const semanticAttributes& exp1, const string& op, const semanticAttributes& exp2);
 void genMarker(semanticAttributes& m);
-void genLoad(semanticAttributes& dest, semanticAttributes& id, long long offset);
+void genLoad(semanticAttributes& dest, semanticAttributes& id);
+void printVector(const vector<pair<int,BranchLabelIndex>>& address_list);
+void genFuncDefenition(const string& funcName);
+void genIntReturn(semanticAttributes& exp);
+void genVoidReturn();
+void genCloseFunc(const string& retType);
+string genFuncCall(const semanticAttributes& explist, const string& funcName );
+void genVoidFuncCall(const string& funcName );
+void genVarStore(const string& varName, semanticAttributes& exp, bool is_default = false);
+void genBoolValForFuncArg(semanticAttributes& exp);
+void genBoolRetType(semanticAttributes& exp);
+void genIfNoElse(semanticAttributes& dest, semanticAttributes& ifExp, semanticAttributes&
+markerBeforeStatement);
+void genIfElse(semanticAttributes& dest, semanticAttributes& ifExp, semanticAttributes&
+markerBeforeIfStatement, semanticAttributes& markerBeforeElseStatement, semanticAttributes& N);
+string createNextLabelAndBpatchNextList(semanticAttributes& statement);
+void mergeNextLists(semanticAttributes& dest, semanticAttributes& src1, semanticAttributes& src2);
+void genBrForNextList(semanticAttributes& dest);

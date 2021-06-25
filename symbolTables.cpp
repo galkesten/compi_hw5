@@ -115,6 +115,8 @@ void symbolTables::pushNewVar(const string &name, const string &type,
         throw symbolExist(name, false);
     }
     symbolTableTuple new_tuple(name, type, offset, false, vector<string>(), vector<string>());
+    //cout << "name in pushNewVar :" <<  name << endl;
+    //cout << "offset in pushNewVar :" << offset << endl;
     tables[tables.size()-1].push_back(new_tuple);
 }
 
@@ -128,8 +130,12 @@ long long symbolTables::pushNewFunc(const string &name, const string &ret_type,
 
     tables[tables.size()-1].push_back(new_tuple);
     int table_index = this->pushNewTable(); //creating new table for functions;
-    for(unsigned int i=0; i<argsTypes.size(); ++i){
-        this->pushNewVar(argNames[i], argsTypes[i], -i-1);
+    for(long long i=0; i<argsTypes.size(); ++i){
+       // cout << "i is " << i << endl;
+        long long offset = 0;
+        offset = -i-1;
+       // cout << "offset in pushNewFunc :" << offset << endl;
+        this->pushNewVar(argNames[i], argsTypes[i], offset);
     }
 
     return table_index;
@@ -165,12 +171,15 @@ long long symbolTables::getOffset(const string &symbol) {
     while(i>=0){
         int res = lookForString(symbol, tables[i]);
         if(res > -1){
+           // cout << "res: " << res << endl;
             offset = tables[i][res].offset;
+           // cout << "offset :" << offset << endl;
             break;
 
         }
         --i;
     }
+
     return offset;
 
 }

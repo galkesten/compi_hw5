@@ -16,13 +16,13 @@ using std::vector;
 
 struct semanticAttributes{
     int intVal;
-    char byteVal;
+    unsigned char byteVal;
     string stringVal;
     string type;
     std::vector<string> variablesValues;
     std::vector<string> variablesTypes;
     string place;
-    vector<string> varPlaces;
+    vector<string> variablesPlaces;
     string label;
     vector<pair<int,BranchLabelIndex>> trueList;
     vector<pair<int,BranchLabelIndex>> falseList;

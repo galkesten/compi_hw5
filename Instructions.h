@@ -41,13 +41,14 @@ public:
 
 
 class zextInstruction : Instruction{
-    string dest;
     string src;
+    string dest;
     string type_src;
     string type_dest;
 
 public:
-    zextInstruction(const string& dest, const string& src, const string type_src, const string& type_dest);
+    zextInstruction(const string& src,const string& dest, const string& type_src, const string&
+    type_dest);
     ~zextInstruction() = default;
     zextInstruction& operator=(const zextInstruction&) = default;
     zextInstruction(const zextInstruction&) = default;
@@ -57,8 +58,8 @@ public:
 
 
 class truncInstruction : Instruction{
-    string dest;
     string src;
+    string dest;
     string type_src;
     string type_dest;
 
