@@ -16,6 +16,7 @@ stack<scope> scopes;
 bool isMainDeclared = false;
 int isWhile = 0;
 int isSwitch = 0;
+int whileOrSwitch = 0;
 string curr_func_name = "";
 
 
@@ -60,9 +61,13 @@ ret_type , const vector<string>& argsTypes,
     }
     if(type == WHILE_BLOCK){
        isWhile++;
+       whileOrSwitch = 1;
     }
-    if(type == SWITCH_BLOCK)
+    if(type == SWITCH_BLOCK) {
+        whileOrSwitch = 2;
         isSwitch++;
+
+    }
     scope new_scope(type, table_index, name, ret_type);
 
     scopes.push(new_scope);

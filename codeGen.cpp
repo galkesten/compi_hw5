@@ -4,6 +4,7 @@
 extern symbolTables tables;
 extern int isWhile;
 extern int isSwitch;
+extern int whileOrSwitch;
 typedef long long ll;
 
 void printVector(const vector<pair<int,BranchLabelIndex>>& address_list){
@@ -455,7 +456,7 @@ void genBreak(){
     br.emit();
     int address = buffer.getSize();
 
-    if(isWhile > 0){
+    if(whileOrSwitch == 1){
         auto& curr = generator.whileInfoStack.top();
         curr.nextList.push_back({address, FIRST});
     }
@@ -523,6 +524,12 @@ void genSwitch(semanticAttributes& exp){
         buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
     }
     nextList = buffer.merge(nextList, curr.breakNextList);
-    buffer.bpatch(nextList, currLabel);
+    if(!isWhile) {
+        buffer.bpatch(nextList, currLabel);
+    }
+    else{
+        auto& currWhile = generator.whileInfoStack.top();
+        currWhile.nextList = buffer.merge(currWhile.nextList, nextList);
+    }
 
 }
