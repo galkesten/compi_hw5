@@ -523,13 +523,14 @@ void genSwitch(semanticAttributes& exp){
         currLabel = buffer.genLabel();
         buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
     }
-    nextList = buffer.merge(nextList, curr.breakNextList);
-    if(!isWhile) {
+    if(isWhile <=0) {
+        nextList = buffer.merge(nextList, curr.breakNextList);
         buffer.bpatch(nextList, currLabel);
     }
     else{
         auto& currWhile = generator.whileInfoStack.top();
-        currWhile.nextList = buffer.merge(currWhile.nextList, nextList);
+        buffer.bpatch(curr.breakNextList, currWhile.label);
+        buffer.bpatch(nextList, currLabel);
     }
 
 }
