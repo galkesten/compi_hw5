@@ -4,7 +4,7 @@
 extern symbolTables tables;
 extern int isWhile;
 extern int isSwitch;
-extern int whileOrSwitch;
+extern stack<scopeType> scopeTypeStack;
 typedef long long ll;
 
 void printVector(const vector<pair<int,BranchLabelIndex>>& address_list){
@@ -455,8 +455,7 @@ void genBreak(){
     unconditionalBrInstruction br("@");
     br.emit();
     int address = buffer.getSize();
-
-    if(whileOrSwitch == 1){
+    if(scopeTypeStack.top()==WHILE_BLOCK){
         auto& curr = generator.whileInfoStack.top();
         curr.nextList.push_back({address, FIRST});
     }
@@ -523,7 +522,7 @@ void genSwitch(semanticAttributes& exp){
         currLabel = buffer.genLabel();
         buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
     }
-    if(isWhile <=0) {
+    if(scopeTypeStack.top()==SWITCH_BLOCK) {
         nextList = buffer.merge(nextList, curr.breakNextList);
         buffer.bpatch(nextList, currLabel);
     }

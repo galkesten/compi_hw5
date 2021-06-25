@@ -16,7 +16,7 @@ stack<scope> scopes;
 bool isMainDeclared = false;
 int isWhile = 0;
 int isSwitch = 0;
-int whileOrSwitch = 0;
+stack<scopeType> scopeTypeStack;
 string curr_func_name = "";
 
 
@@ -61,12 +61,11 @@ ret_type , const vector<string>& argsTypes,
     }
     if(type == WHILE_BLOCK){
        isWhile++;
-       whileOrSwitch = 1;
+       scopeTypeStack.push(type);
     }
     if(type == SWITCH_BLOCK) {
-        whileOrSwitch = 2;
         isSwitch++;
-
+        scopeTypeStack.push(type);
     }
     scope new_scope(type, table_index, name, ret_type);
 
@@ -99,10 +98,14 @@ void closeScope(){
 //        }
 //        output::printID(name, offset, type);
 //    }
-    if(curr_scope.scope_type == WHILE_BLOCK)
+    if(curr_scope.scope_type == WHILE_BLOCK) {
         isWhile--;
-    if(curr_scope.scope_type == SWITCH_BLOCK)
+        scopeTypeStack.pop();
+    }
+    if(curr_scope.scope_type == SWITCH_BLOCK) {
         isSwitch--;
+        scopeTypeStack.pop();
+    }
     if(curr_scope.scope_type == FUNC_BLOCK){
         curr_func_name = "";
     }

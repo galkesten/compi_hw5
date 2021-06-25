@@ -72,13 +72,12 @@ Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
 			{openNewScope(ELSE_BLOCK);} M Statement %prec ELSE {closeScope();
 			genIfElse($$, $3, $5, $11, $9); mergeNextLists($$,$$, $6), mergeNextLists($$,$$, $12);}
 			| WHILE LPAREN {genLabelForWhileOrSwitch(true);} Exp {checkBoolType($4.type, $4.type);}
-			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement  {closeScope();
-			                                                    genWhile($$, $4, $8);}
+			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement {genWhile($$, $4, $8); closeScope();}
 			| BREAK SC {checkBreak(); genBreak();}
 			| CONTINUE SC {checkContinue(); genContinue();}
 			| SWITCH LPAREN {genLabelForWhileOrSwitch(false);} Exp {checkNumericType($4.type, $4
 			.type); openNewScope(SWITCH_BLOCK); genBrToCaseList();}  RPAREN LBRACE CaseList RBRACE
-			{closeScope(); genSwitch($4);}
+			{genSwitch($4); closeScope();}
 
 ;
 IfExpType : Exp {checkBoolType($1.type, $1.type); openNewScope(IF_BLOCK); $$ = $1; }
