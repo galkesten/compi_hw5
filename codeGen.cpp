@@ -2,7 +2,8 @@
 #include "symbolTables.h"
 #include <iostream>
 extern symbolTables tables;
-
+extern int isWhile;
+extern int isSwitch;
 typedef long long ll;
 
 void printVector(const vector<pair<int,BranchLabelIndex>>& address_list){
@@ -368,6 +369,7 @@ void genBrForNextList(semanticAttributes& dest){
     dest.nextList.push_back(make_pair(address,FIRST));
 }
 
+
 void genIfNoElse(semanticAttributes& dest, semanticAttributes& ifExp, semanticAttributes&
     markerBeforeStatement){
     // before we entered this func we created with markerBeforeStatment a label for the if statement
@@ -407,3 +409,120 @@ void mergeNextLists(semanticAttributes& dest, semanticAttributes& src1, semantic
     dest.nextList = buffer.merge(src1.nextList, src2.nextList);
 }
 
+
+string genBrToWhileOrSwitchStartLabel(){
+    auto& buffer = CodeBuffer::instance();
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int address = buffer.getSize();
+    string label = buffer.genLabel();
+    auto list = buffer.makelist({address, FIRST});
+    buffer.bpatch(list, label);
+    return label;
+}
+whileInfo::whileInfo(const string &label) : label(label), nextList(vector<pair<int,BranchLabelIndex>>()){}
+
+ void genLabelForWhileOrSwitch(bool whileScope){
+    string entryLabel =  genBrToWhileOrSwitchStartLabel();
+    if(whileScope){
+        struct whileInfo info( entryLabel);
+        codeGen::instance().whileInfoStack.push(info);
+    }
+    else{
+        struct switchInfo info(entryLabel);
+        codeGen::instance().switchInfoStack.push(info);
+    }
+}
+
+void genWhile(semanticAttributes& dest, semanticAttributes& whileExp, semanticAttributes&
+markerBeforeStatement){
+
+    auto& buffer = CodeBuffer::instance();
+    auto& generator = codeGen::instance();
+    buffer.bpatch(whileExp.trueList, markerBeforeStatement.label);
+    struct whileInfo curr = generator.whileInfoStack.top();
+    generator.whileInfoStack.pop();
+    unconditionalBrInstruction brBackToWhile(curr.label);
+    brBackToWhile.emit();
+    dest.nextList = CodeBuffer::merge(dest.nextList, whileExp.falseList);
+    dest.nextList = CodeBuffer::merge(dest.nextList, curr.nextList);
+}
+
+void genBreak(){
+    auto& buffer = CodeBuffer::instance();
+    auto& generator = codeGen::instance();
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int address = buffer.getSize();
+
+    if(isWhile > 0){
+        auto& curr = generator.whileInfoStack.top();
+        curr.nextList.push_back({address, FIRST});
+    }
+    else{
+        auto& curr = generator.switchInfoStack.top();
+        curr.breakNextList.push_back({address, FIRST});
+    }
+
+}
+
+void genContinue(){
+    auto& generator = codeGen::instance();
+    auto& curr = generator.whileInfoStack.top();
+    unconditionalBrInstruction br(curr.label);
+    br.emit();
+}
+
+
+switchInfo::switchInfo(const string &label) : label(label), breakNextList(vector<pair<int,
+        BranchLabelIndex>>()), jumpToStartCaseList(vector<pair<int,
+        BranchLabelIndex>>()), caseList(vector<pair<string,string>>()){}
+
+void genNewCase(semanticAttributes& num, bool isDefault){
+    string caseLabel = genBrToWhileOrSwitchStartLabel();
+    auto& curr = codeGen::instance().switchInfoStack.top();
+    string caseVal = "DEFAULT";
+    if(!isDefault){
+        caseVal  = to_string(num.intVal);
+    }
+    curr.caseList.push_back({caseLabel, caseVal});
+}
+
+void genBrToCaseList(){
+    auto& buffer = CodeBuffer::instance();
+    auto& generator = codeGen::instance();
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int address = buffer.getSize();
+    auto& curr = generator.switchInfoStack.top();
+    curr.jumpToStartCaseList.push_back({address, FIRST});
+}
+
+void genSwitch(semanticAttributes& exp){
+    auto& buffer = CodeBuffer::instance();
+    auto& generator = codeGen::instance();
+    auto& curr = generator.switchInfoStack.top();
+    unconditionalBrInstruction br("@");
+    br.emit();
+    int address = buffer.getSize();
+    auto nextList = buffer.makelist({address, FIRST});
+    string startCaseList = buffer.genLabel();
+    buffer.bpatch(curr.jumpToStartCaseList, startCaseList);
+
+    string currLabel;
+    for(auto& caseElem : curr.caseList){
+        string cmpRes = generator.newVar();
+        string src1 = exp.place;
+        string src2 = caseElem.second =="DEFAULT" ?  src1 :  caseElem.second;
+        cmpInstruction cmp(src1, src2, cmpRes,"i32", "eq");
+        cmp.emit();
+        conditionalBrInstruction br(caseElem.first, "@", cmpRes);
+        br.emit();
+        int address = buffer.getSize();
+        currLabel = buffer.genLabel();
+        buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
+    }
+    nextList = buffer.merge(nextList, curr.breakNextList);
+    buffer.bpatch(nextList, currLabel);
+
+}

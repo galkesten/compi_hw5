@@ -68,21 +68,23 @@ Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
 			| RETURN Exp SC {checkRetType($2.type); genIntReturn($2);}
 			| IF LPAREN IfExpType RPAREN M Statement closeIfMarker %prec IF
 			{genIfNoElse($$, $3, $5); }
-			| IF LPAREN IfExpType RPAREN M Statement closeIfMarker N ELSE
+			| IF LPAREN IfExpType RPAREN M Statement closeIfMarker ELSE N
 			{openNewScope(ELSE_BLOCK);} M Statement %prec ELSE {closeScope();
-			genIfElse($$, $3, $5, $11, $8);}
-			| WHILE LPAREN Exp {checkBoolType($3.type, $3.type);} RPAREN
-			                    {openNewScope(WHILE_BLOCK);} Statement
-			                    {closeScope();}
-			| BREAK SC {checkBreak();}
-			| CONTINUE SC {checkContinue();}
-			| SWITCH LPAREN Exp {checkNumericType($3.type, $3.type);
-			openNewScope(SWITCH_BLOCK);}  RPAREN LBRACE CaseList RBRACE
-			{closeScope();}
+			genIfElse($$, $3, $5, $11, $9);}
+			| WHILE LPAREN {genLabelForWhileOrSwitch(true);} Exp {checkBoolType($4.type, $4.type);}
+			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement  {closeScope();
+			                                                    genWhile($$, $4, $8);}
+			| BREAK SC {checkBreak(); genBreak();}
+			| CONTINUE SC {checkContinue(); genContinue();}
+			| SWITCH LPAREN {genLabelForWhileOrSwitch(false);} Exp {checkNumericType($4.type, $4
+			.type); openNewScope(SWITCH_BLOCK); genBrToCaseList();}  RPAREN LBRACE CaseList RBRACE
+			{closeScope(); genSwitch($4);}
 
 ;
 IfExpType : Exp {checkBoolType($1.type, $1.type); openNewScope(IF_BLOCK); $$ = $1; }
 closeIfMarker : { closeScope();}
+
+
 Call : ID LPAREN ExpList RPAREN {checkFuncCall($1.stringVal, $3.variablesTypes);
                                  $$.type = getSymbolType($1.stringVal);
                                  $$.place = genFuncCall($3, $1.stringVal);}
@@ -130,9 +132,10 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; $$ = $2;}
 ;
 CaseList : CaseDecl CaseList {}
 		| CaseDecl {}
-		| DEFAULT COLON Statements {}
+		| DEFAULT COLON {genNewCase($1, true);}Statements {}
 ;		
-CaseDecl : CASE NUM COLON Statements {}
+CaseDecl : CASE NUM COLON {genNewCase($2, false);}Statements
+ {}
 ;
 
 %%

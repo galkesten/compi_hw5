@@ -2,12 +2,32 @@
 #include "Instructions.h"
 #include "semanticAnalyzer.h"
 #include "bp.hpp"
+#include <stack>
+
+using std::stack;
+
+struct whileInfo{
+    string label;
+    vector<pair<int,BranchLabelIndex>> nextList;
+
+    whileInfo(const string& label);
+};
+
+struct switchInfo{
+    string label;
+    vector<pair<int,BranchLabelIndex>> breakNextList;
+    vector<pair<int,BranchLabelIndex>> jumpToStartCaseList;
+    vector<pair<string,string>> caseList;
+    switchInfo(const string& label);
+};
 
 class codeGen{
     int count_var=0;
 
     codeGen() = default;
 public:
+    stack<whileInfo> whileInfoStack;
+    stack<switchInfo> switchInfoStack;
     string curr_func_stack_pointer;
     bool ReturnWasLastStatement = false;
     static codeGen& instance();
@@ -50,3 +70,11 @@ markerBeforeIfStatement, semanticAttributes& markerBeforeElseStatement, semantic
 string createNextLabelAndBpatchNextList(semanticAttributes& statement);
 void mergeNextLists(semanticAttributes& dest, semanticAttributes& src1, semanticAttributes& src2);
 void genBrForNextList(semanticAttributes& dest);
+void genLabelForWhileOrSwitch(bool isWhile);
+void genWhile(semanticAttributes& dest, semanticAttributes& whileExp, semanticAttributes&
+markerBeforeStatement);
+void genContinue();
+void genBreak();
+void genNewCase(semanticAttributes& num, bool isDefault);
+void genBrToCaseList();
+void genSwitch(semanticAttributes& exp);
