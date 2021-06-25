@@ -67,10 +67,10 @@ Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
 			| RETURN SC { checkVoidFunc();  genVoidReturn();}
 			| RETURN Exp SC {checkRetType($2.type); genIntReturn($2);}
 			| IF LPAREN IfExpType RPAREN M Statement closeIfMarker %prec IF
-			{genIfNoElse($$, $3, $5); }
+			{genIfNoElse($$, $3, $5); mergeNextLists($$,$$, $6); }
 			| IF LPAREN IfExpType RPAREN M Statement closeIfMarker ELSE N
 			{openNewScope(ELSE_BLOCK);} M Statement %prec ELSE {closeScope();
-			genIfElse($$, $3, $5, $11, $9);}
+			genIfElse($$, $3, $5, $11, $9); mergeNextLists($$,$$, $6), mergeNextLists($$,$$, $12);}
 			| WHILE LPAREN {genLabelForWhileOrSwitch(true);} Exp {checkBoolType($4.type, $4.type);}
 			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement  {closeScope();
 			                                                    genWhile($$, $4, $8);}
