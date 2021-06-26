@@ -72,12 +72,12 @@ Statement : LBRACE {openNewScope(BLOCK);} Statements RBRACE {closeScope();}
 			{openNewScope(ELSE_BLOCK);} M Statement %prec ELSE {closeScope();
 			genIfElse($$, $3, $5, $11, $9); mergeNextLists($$,$$, $6), mergeNextLists($$,$$, $12);}
 			| WHILE LPAREN {genLabelForWhileOrSwitch(true);} Exp {checkBoolType($4.type, $4.type);}
-			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement {genWhile($$, $4, $8); closeScope();}
+			RPAREN  {openNewScope(WHILE_BLOCK);} M Statement { closeScope(); genWhile($$, $4, $8, $9);}
 			| BREAK SC {checkBreak(); genBreak();}
 			| CONTINUE SC {checkContinue(); genContinue();}
 			| SWITCH LPAREN {genLabelForWhileOrSwitch(false);} Exp {checkNumericType($4.type, $4
-			.type); openNewScope(SWITCH_BLOCK); genBrToCaseList();}  RPAREN LBRACE CaseList RBRACE
-			{genSwitch($4); closeScope();}
+			.type); openNewScope(SWITCH_BLOCK); genBrToCaseList();}  RPAREN
+			LBRACE CaseList RBRACE {closeScope(); genSwitch($$,$4,$8 );}
 
 ;
 IfExpType : Exp {checkBoolType($1.type, $1.type); openNewScope(IF_BLOCK); $$ = $1; }
@@ -89,7 +89,7 @@ Call : ID LPAREN ExpList RPAREN {checkFuncCall($1.stringVal, $3.variablesTypes);
                                  $$.place = genFuncCall($3, $1.stringVal);}
 		|ID LPAREN RPAREN {checkFuncCall($1.stringVal);
                            $$.type = getSymbolType($1.stringVal);
-                            genVoidFuncCall($1.stringVal);}
+                            $$.place = genEmptyFuncCall($1.stringVal);}
 ;
 ExpList : Exp {genBoolValForFuncArg($1); $$.variablesTypes = {$1.type};
                 $$.variablesPlaces = {$1.place};}
@@ -129,12 +129,13 @@ Exp : LPAREN Exp RPAREN {$$.type = $2.type; $$ = $2;}
                         $$.type = "BOOL"; genRelational($$, $1, $2.stringVal, $3);}
 
 ;
-CaseList : CaseDecl CaseList {}
-		| CaseDecl {}
-		| DEFAULT COLON {genNewCase($1, true);}Statements {}
+CaseList : CaseDecl CaseList {mergeNextLists($$,$1,$2);}
+		| CaseDecl {mergeNextLists($$,$$,$1);}
+		| DEFAULT COLON {genNewCase($1, true);} Statements {mergeNextLists
+		($$,$$,$4);}
 ;		
-CaseDecl : CASE NUM COLON {genNewCase($2, false);}Statements
- {}
+CaseDecl : CASE NUM COLON {genNewCase($2, false);} Statements
+ {mergeNextLists($$,$$,$5); }
 ;
 
 %%

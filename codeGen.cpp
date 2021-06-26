@@ -4,7 +4,7 @@
 extern symbolTables tables;
 extern int isWhile;
 extern int isSwitch;
-extern stack<scopeType> scopeTypeStack;
+extern vector<scopeType> switchWhileStack;
 typedef long long ll;
 
 void printVector(const vector<pair<int,BranchLabelIndex>>& address_list){
@@ -265,6 +265,8 @@ string genCodeForDecidingBoolExpVal(semanticAttributes& exp){
    buffer.bpatch(buffer.makelist({add2, FIRST}), finalLabel);
    buffer.bpatch(exp.trueList, trueLabel);
    buffer.bpatch(exp.falseList, falseLabel);
+   exp.trueList.clear();
+   exp.falseList.clear();
    return finalReg;
 }
 void genIntReturn(semanticAttributes& exp){
@@ -307,12 +309,15 @@ string genFuncCall(const semanticAttributes& explist, const string& funcName ){
     return dest;
 }
 
-void genVoidFuncCall(const string& funcName ){
+string genEmptyFuncCall(const string& funcName ){
     string retType = tables.getType(funcName);
     string dest = "";
-
+    if(retType != "VOID"){
+        dest = codeGen::instance().newVar();
+    }
     callInstruction call(vector<string>(), vector<string>(), funcName, retType, dest);
     call.emit();
+    return dest;
 }
 
 void genVarStore(const string& varName, semanticAttributes& exp, bool is_default) {
@@ -421,7 +426,7 @@ string genBrToWhileOrSwitchStartLabel(){
     buffer.bpatch(list, label);
     return label;
 }
-whileInfo::whileInfo(const string &label) : label(label), nextList(vector<pair<int,BranchLabelIndex>>()){}
+whileInfo::whileInfo(const string &label) : label(label), breakNextList(vector<pair<int,BranchLabelIndex>>()){}
 
  void genLabelForWhileOrSwitch(bool whileScope){
     string entryLabel =  genBrToWhileOrSwitchStartLabel();
@@ -436,28 +441,42 @@ whileInfo::whileInfo(const string &label) : label(label), nextList(vector<pair<i
 }
 
 void genWhile(semanticAttributes& dest, semanticAttributes& whileExp, semanticAttributes&
-markerBeforeStatement){
+markerBeforeStatement, semanticAttributes& statement){
 
     auto& buffer = CodeBuffer::instance();
     auto& generator = codeGen::instance();
+    //we know where we should jump if while is true
     buffer.bpatch(whileExp.trueList, markerBeforeStatement.label);
+    //at the end of the while we need to br back to the start of the while
     struct whileInfo curr = generator.whileInfoStack.top();
     generator.whileInfoStack.pop();
     unconditionalBrInstruction brBackToWhile(curr.label);
     brBackToWhile.emit();
+    //now we should decide where to go - if it is while inside a while we should jump back to while
+    //else we should go to next sentence
     dest.nextList = CodeBuffer::merge(dest.nextList, whileExp.falseList);
-    dest.nextList = CodeBuffer::merge(dest.nextList, curr.nextList);
+    dest.nextList = CodeBuffer::merge(dest.nextList, curr.breakNextList);
+    dest.nextList = CodeBuffer::merge(dest.nextList, statement.nextList);
+    /*
+    if(switchWhileStack.size()-1 >= 0 && switchWhileStack[switchWhileStack.size()-1] ==
+            WHILE_BLOCK){
+        auto& father = generator.whileInfoStack.top();
+        buffer.bpatch(dest.nextList, father.label);
+        dest.nextList.clear();
+    }
+     */
 }
 
 void genBreak(){
+    //cout << "break";
     auto& buffer = CodeBuffer::instance();
     auto& generator = codeGen::instance();
     unconditionalBrInstruction br("@");
     br.emit();
     int address = buffer.getSize();
-    if(scopeTypeStack.top()==WHILE_BLOCK){
+    if(switchWhileStack.back() == WHILE_BLOCK){
         auto& curr = generator.whileInfoStack.top();
-        curr.nextList.push_back({address, FIRST});
+        curr.breakNextList.push_back({address, FIRST});
     }
     else{
         auto& curr = generator.switchInfoStack.top();
@@ -479,6 +498,7 @@ switchInfo::switchInfo(const string &label) : label(label), breakNextList(vector
         BranchLabelIndex>>()), caseList(vector<pair<string,string>>()){}
 
 void genNewCase(semanticAttributes& num, bool isDefault){
+  //  cout << "hi!!!" << endl;
     string caseLabel = genBrToWhileOrSwitchStartLabel();
     auto& curr = codeGen::instance().switchInfoStack.top();
     string caseVal = "DEFAULT";
@@ -498,10 +518,12 @@ void genBrToCaseList(){
     curr.jumpToStartCaseList.push_back({address, FIRST});
 }
 
-void genSwitch(semanticAttributes& exp){
+void genSwitch(semanticAttributes& dest, semanticAttributes& exp, semanticAttributes& caseListNode){
     auto& buffer = CodeBuffer::instance();
     auto& generator = codeGen::instance();
-    auto& curr = generator.switchInfoStack.top();
+    auto curr = generator.switchInfoStack.top();
+    generator.switchInfoStack.pop();
+    //we want to create a jump for the last switch case to the next statement after switch
     unconditionalBrInstruction br("@");
     br.emit();
     int address = buffer.getSize();
@@ -510,26 +532,39 @@ void genSwitch(semanticAttributes& exp){
     buffer.bpatch(curr.jumpToStartCaseList, startCaseList);
 
     string currLabel;
+    unsigned int counter = 0;
     for(auto& caseElem : curr.caseList){
         string cmpRes = generator.newVar();
         string src1 = exp.place;
         string src2 = caseElem.second =="DEFAULT" ?  src1 :  caseElem.second;
         cmpInstruction cmp(src1, src2, cmpRes,"i32", "eq");
+
         cmp.emit();
         conditionalBrInstruction br(caseElem.first, "@", cmpRes);
         br.emit();
         int address = buffer.getSize();
-        currLabel = buffer.genLabel();
-        buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
+        if(counter < curr.caseList.size()-1) {
+            currLabel = buffer.genLabel();
+            buffer.bpatch(buffer.makelist({address, SECOND}), currLabel);
+        } else {
+           nextList.push_back({address, SECOND});
+        }
+        counter ++;
+
     }
-    if(scopeTypeStack.top()==SWITCH_BLOCK) {
-        nextList = buffer.merge(nextList, curr.breakNextList);
-        buffer.bpatch(nextList, currLabel);
-    }
-    else{
+
+    dest.nextList = buffer.merge(dest.nextList, nextList);
+    dest.nextList = buffer.merge(dest.nextList, caseListNode.nextList);
+    //dest.nextList = buffer.merge(dest.nextList, caseListNode.nextList);
+    dest.nextList = buffer.merge(dest.nextList, curr.breakNextList);
+    /*
+    if(switchWhileStack.size()-1 >= 0 && switchWhileStack[switchWhileStack.size()-1] ==
+                                         WHILE_BLOCK){
         auto& currWhile = generator.whileInfoStack.top();
-        buffer.bpatch(curr.breakNextList, currWhile.label);
-        buffer.bpatch(nextList, currLabel);
+        buffer.bpatch(dest.nextList,  currWhile.label);
+        dest.nextList.clear();
+
     }
+     */
 
 }

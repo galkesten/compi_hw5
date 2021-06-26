@@ -16,7 +16,7 @@ stack<scope> scopes;
 bool isMainDeclared = false;
 int isWhile = 0;
 int isSwitch = 0;
-stack<scopeType> scopeTypeStack;
+vector<scopeType> switchWhileStack;
 string curr_func_name = "";
 
 
@@ -61,11 +61,11 @@ ret_type , const vector<string>& argsTypes,
     }
     if(type == WHILE_BLOCK){
        isWhile++;
-       scopeTypeStack.push(type);
+       switchWhileStack.push_back(type);
     }
     if(type == SWITCH_BLOCK) {
         isSwitch++;
-        scopeTypeStack.push(type);
+        switchWhileStack.push_back(type);
     }
     scope new_scope(type, table_index, name, ret_type);
 
@@ -82,29 +82,14 @@ ret_type , const vector<string>& argsTypes,
 
 
 void closeScope(){
-//    output::endScope();
     scope& curr_scope = scopes.top();
-    vector<symbolTableTuple>& curr_table = tables.getTable(curr_scope
-            .table_index);
-//    for(auto& symbol : curr_table){
-//        string name = symbol.name;
-//        long long offset = symbol.offset;
-//        string type;
-//        if(symbol.is_func){
-//            type = output::makeFunctionType(symbol.type, symbol.argsTypes);
-//        }
-//        else{
-//            type = symbol.type;
-//        }
-//        output::printID(name, offset, type);
-//    }
     if(curr_scope.scope_type == WHILE_BLOCK) {
         isWhile--;
-        scopeTypeStack.pop();
+        switchWhileStack.pop_back();
     }
     if(curr_scope.scope_type == SWITCH_BLOCK) {
         isSwitch--;
-        scopeTypeStack.pop();
+        switchWhileStack.pop_back();
     }
     if(curr_scope.scope_type == FUNC_BLOCK){
         curr_func_name = "";

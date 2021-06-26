@@ -8,7 +8,7 @@ using std::stack;
 
 struct whileInfo{
     string label;
-    vector<pair<int,BranchLabelIndex>> nextList;
+    vector<pair<int,BranchLabelIndex>> breakNextList;
 
     whileInfo(const string& label);
 };
@@ -59,7 +59,7 @@ void genIntReturn(semanticAttributes& exp);
 void genVoidReturn();
 void genCloseFunc(const string& retType);
 string genFuncCall(const semanticAttributes& explist, const string& funcName );
-void genVoidFuncCall(const string& funcName );
+string genEmptyFuncCall(const string& funcName );
 void genVarStore(const string& varName, semanticAttributes& exp, bool is_default = false);
 void genBoolValForFuncArg(semanticAttributes& exp);
 void genBoolRetType(semanticAttributes& exp);
@@ -72,9 +72,9 @@ void mergeNextLists(semanticAttributes& dest, semanticAttributes& src1, semantic
 void genBrForNextList(semanticAttributes& dest);
 void genLabelForWhileOrSwitch(bool isWhile);
 void genWhile(semanticAttributes& dest, semanticAttributes& whileExp, semanticAttributes&
-markerBeforeStatement);
+markerBeforeStatement, semanticAttributes& statement);
 void genContinue();
 void genBreak();
 void genNewCase(semanticAttributes& num, bool isDefault);
 void genBrToCaseList();
-void genSwitch(semanticAttributes& exp);
+void genSwitch(semanticAttributes& dest, semanticAttributes& exp, semanticAttributes& caseListNode);
